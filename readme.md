@@ -8,13 +8,14 @@
 1. 同源策略及跨域请求的几种方法和原理。
 
    答案：同源策略是客户端脚本（尤其是Javascript）的重要的安全度量标准。它最早出自Netscape Navigator2.0，其目的是防止某个文档或脚本从多个不同源装载。这里的同源指的是：同协议，同域名和同端口。这里说的js跨域是指通过js在不同的域之间进行数据传输或通信，比如用ajax向一个不同的域请求数据，或者通过js获取页面中不同域的框架中(iframe)的数据。只要协议、域名、端口有任何一个不同，都被当作是不同的域。
+   
    浏览器的同源策略，其限制之一就是第一种方法中我们说的不能通过ajax的方法去请求不同源中的文档。 它的第二个限制是浏览器中不同域的框架之间是不能进行js的交互操作的。有一点需要说明，不同的框架之间（父子或同辈），是能够获取到彼此的window对象的，但头疼的是你却不能使用获取到的window对象的属性和方法(html5中的postMessage方法是一个例外，还有些浏览器比如ie6也可以使用top、parent等少数几个属性)，总之，你可以当做是只能获取到一个几乎无用的window对象。
 
-   **document.domain**：只要将同一域下不同子域的document.domain设置为共同的父域，则这个时候我们就可以访问对应window的各种属性和方法了。例如：www.example.com父域下的www.lib.example.com和www.hr.example.com两个子域，将对应页面的document.domain设为example.com即可。**缺点**：只能在一级域名相同时才能运用。  
+   **document.domain**：只要将同一域下不同子域的document.domain设置为共同的父域，则这个时候我们就可以访问对应window的各种属性和方法了。例如：www.example.com父域下的www.lib.example.com和www.hr.example.com两个子域，将对应页面的document.domain设为example.com即可。**缺点**：只能在一级域名相同时才能运用。且只是用与不同子域的框架间交互。不能用ajax直接请求不同子域的页面数据。  
 
-   **JSONP**：原理是动态添加一个script标签，而script标签的src属性是没有跨域的限制的。jquery中还提供了一个$.getJSON(url,arg,callback(data))用来进行jsonp访问。**缺点**：只支持get不支持post；只支持http请求这种情况，不能解决不同域两个页面之间如何进行JavaScript调用的问题；JSONP请求失败时不返回http状态码。  
+   **JSONP**：原理是动态添加一个script标签，而script标签的src属性是没有跨域的限制的。jquery中还提供了一个$.getJSON(url,arg,callback(data))用来进行jsonp访问。**缺点**：只支持get不支持post；只支持http请求这种情况，不能解决不同域两个页面之间如何进行JavaScript调用的问题；JSONP请求失败时不返回http状态码。 
 
-   **CORS（跨域资源共享）**：HTML5引入的新的跨域的方法，不过需要在请求头和相应头设置相应的Access-Control-属性。**缺点**：兼容性问题，适合一些新的浏览器。
+   **CORS（跨域资源共享）**：HTML5引入的新的跨域的方法，不过需要在请求头(orign)和响应头(Access-Control-Allow-)设置相应的属性。**缺点**：兼容性问题，适合一些新的浏览器。
 
    参考:  
    [说说JSON和JSONP](http://www.cnblogs.com/dowinning/archive/2012/04/19/json-jsonp-jquery.html)  
@@ -23,6 +24,14 @@
    [HTTP访问控制(CORS)](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS)
 
 2. 什么是`CORS`，有什么作用？
+
+   答案：**CORS**全称：“跨域资源共享”(Cross-origin resource sharing).它允许浏览器向跨源服务器，发出XMLHttpRequest请求，从而克服AJAX只能同源使用的限制，从不同的域访问其资源。CORS需要浏览器和服务器同时支持，定义了一种浏览器和服务器交互的方式来确定是否允许跨域请求。简言之，CORS就是为了让AJAX可以实现可控的跨域访问而生的。浏览器一旦发现AJAX请求跨源，就会自动添加一些附加的头信息，有时还会多出一次附加的请求，但用户不会有感觉。因此，实现CORS通信的关键是服务器。只要服务器实现了CORS接口，就可以跨源通信。浏览器将CORS请求分成两类：简单请求（simple request）和非简单请求（not-so-simple request）。非简单请求会多出一次“预检”请求。
+   JSONP只支持GET请求，CORS支持所有类型的HTTP请求。JSONP的优势在于支持老式浏览器，以及可以向不支持CORS的网站请求数据。目前，所有浏览器都支持该功能，IE浏览器不能低于IE10。
+
+   参考:  
+   [跨域资源共享 CORS 详解](http://www.ruanyifeng.com/blog/2016/04/cors.html)   
+   [HTTP访问控制(CORS)](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS)
+
 3. 介绍一下事件委托及其使用场景。
 4. 前端模块化的几种标准及其比较。
 5. 模块加载器的实现原理(`SeaJS`)
