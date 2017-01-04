@@ -145,8 +145,19 @@
 
     ![持久化](/images/持久化.png)
 
+    在默认情况下，HTTPS连接的cookie会自动加上secure这个参数。
+
+    **HttpOnly Cookie机制**
+
+    HttpOnly是指仅在HTTP层面上传输的Cookie,当设置了HttpOnly标志后，客户端脚本就无法读写该Cookie，这样能有效的防御XSS获取Cookie
+
+    **cookie和session的区别：**
+
+    1. Session保留在服务器中，cookie保留在客户端或浏览器中
+    2. 在Session机制中，session是通过标示符(session id)来识别用户身份，维持会话的,所以session依赖于session id, 后者的保存方式采用cookie,在交互的过程中浏览器自动的按照规则把标识符发送给服务器，当cookie被用户禁止时，也可以采用URL重写的技术，即把session id附加在URL路径后面，附加的方式有两种，一种是作为URL路径的附加信息，一种是作为查询字符串附加在URL后面。
    参考:
    - [理解Cookie和Session机制](http://www.admin10000.com/document/7097.html)
+   - [使用JavaScript操作Cookie](http://www.fscwz.com/2015/11/10/JavaScript-cookie/)
 
 7. 如何用`JavaScript`操作`Cookie`？
 
@@ -795,6 +806,7 @@
     * 不支持浏览器back按钮,要实现ajax下的前后退功能成本较大
     * 可能造成请求数的增加
     * 跨域问题限制
+
     JSON是一种轻量级的数据交换格式，ECMA的一个子集
 
     **优点**：轻量级、易于人的阅读和编写，便于机器（JavaScript）解析，支持复合数据类型（数组、对象、字符串、数字）
@@ -828,7 +840,7 @@
     5. 代码的热升级：只要保证接口不变，内部实现是外部无关的。所以，可以在运行状态下直接升级代码，不需要重启，也不需要停机。
 
     参考:
-    [函数式编程初探](http://www.ruanyifeng.com/blog/2012/04/functional_programming.html)
+    - [函数式编程初探](http://www.ruanyifeng.com/blog/2012/04/functional_programming.html)
 
 24. 什么是函数柯里化(Currying)？
 
@@ -861,21 +873,464 @@
     3. 可以实现延迟计算/运行；其实Function.prototype.bind的方法中延迟计算就是运用的柯里化。
 
     参考:
-    [函数式编程初探](http://www.ruanyifeng.com/blog/2012/04/functional_programming.html)
+    - [JS中的柯里化(currying)](http://www.zhangxinxu.com/wordpress/2013/02/js-currying/)
 
 25. `jQuery`链式调用的原理
-26. 解决异步回调地狱(`callback hell`)有哪些方法？
-27. `Promise`的原理。
-28. 介绍一下什么是`generator`，如何利用`generator`实现异步流程控制？
-29. 说几个`ES6`的新特性。
-30. 客户端存储及他们的异同(例如：`Cookie`, `Session`Storage和localStorage、webstorge等)
+
+    答案：jquery高效的原因之一就是链式调用。原理：通过对象上每个方法的最后返回本对象`return this`。因为返回的是同一对象，所以链式操作可以持续下去。类似`$("#id").css('color','red').show(200);`简单实现一个如下：
+    ```js
+      //定义一个JS构造函数
+      function Demo() {}
+      //扩展它的prototype
+      Demo.prototype ={
+          setName:function (name) {
+              this.name = name;
+              return this;
+          },
+          getName:function () {
+              return this.name;
+          },
+          setAge:function (age) {
+              this.age = age;
+              return this;
+          }
+      };
+      ////工厂函数
+      function D() {
+          return new Demo();
+      }
+      //去实现可链式的调用
+      D().setName("CJ").setAge(18).getName();
+    ```
+    链式调用的好处：
+    * 节省代码量，代码看起来更优雅；
+    * 返回的都是同一个对象，可以提高代码的效率；（不用反复查找同一dom元素）
+    * 另外还有一种就是让代码流程更清晰；
+    * 因为Javascript是无阻塞语言，通过事件来驱动，异步来完成一些本需要阻塞进程的操作。异步编程，编写代码时也是分离的，这就使代码可读性变差。而链式操作，“选其对象，对其操作”的思路,代码流程清晰，改善了异步体验。
+
+    回溯：有时你需要中间值而中断链式调用，或者链式调用中某个方法返回的this改变了，那么这就需要回溯了。回溯帮你维持this的正确指向。在jQuery中，回溯通过`end()`来实现.
+    ```js
+    var box=$('#box');
+    box.find('p.info').text('This is a message.')...//find函数改变了this，this从box变为p.info；
+    //如果你希望继续对box进行操作，那么就要用到回溯。
+    box.find('p.info').text('This is a message.').end().find('p.result').text('ok');
+    //end()能返回之前的对象，即这里的box，也即回溯。
+    ```
     参考:
-    [使用JavaScript操作`Cookie`](http://www.fscwz.com/2015/11/10/JavaScript-`Cookie`/)
-    [`Session`Storage localStorage 和 `Cookie` 之间的区别](https://zhidao.baidu.com/question/753078779171743764.html)
-31. `DOM0``DOM1` `DOM2` `DOM3`都有什么不同。
+    - [链式调用与回溯](http://www.cnblogs.com/justany/archive/2013/01/17/2863101.html)
+
+26. 解决异步回调地狱(`callback hell`)有哪些方法？
+
+    答案：回调函数:意指先在系统的某个地方对函数进行注册，让系统知道这个函数的存在，然后在以后，当某个事件发生时，再调用这个函数对事件进行响应。回调函数使得我们可以轻易的写出异步执行的代码.
+
+    **回调地狱:**
+
+    回调地狱也称回调金字塔（指函数左边沿的缩进），指的是因为回掉函数的嵌套太多、过多的回调层级而造成的 **代码结构混乱** ,造成阅读和维护上的困难。
+
+    其造成的第一个缺点是不匹配我们大脑的思维模式，因为大脑是单线程的，我们在思考问题的时候，会倾向于用同步的思维去理解这些异步的代码，会去判断哪个事件先执行，哪一个稍后执行，而代码结构的混乱，使得我们很难判断回调函数执行的顺序，也使得代码很难维护和更新（大括号太多变得无从下手）。所以我们要做的就是找到一些解决方案，使得我们可以流畅的进行代码阅读。
+
+    **嵌套的回掉函数，是由其调用者来调用的。**
+    ```js
+    //获取文章的第一评论作者的信息
+    function getUserInfoByArticleFirstCommentId(id){
+      $.get("getArticle",{id:id},function(article){
+        $.get("getComment",{id:getFirstCommentId(article)},function(comment){
+          $.get("getUserInfo",{id:comment.author},function(user){
+            //TODO
+          });
+        });
+      });
+    }
+    ```
+    **解决方案：**
+
+    1. **具名函数**：使用具名函数并保持代码层级不要太深；
+    ```js
+    function fun3(err, c) {
+    // ...do something with c in function 3
+    }
+    function fun2(err, b) {
+        // ...do something with b in function 2
+        asyncFun3(fun3);
+    }
+    function fun1(err, a) {
+        //...do something with a in function 1
+        asyncFun2(fun2);
+    }
+    asyncFun1(fun1);
+    ```
+    2. **Promise**：进阶一级的使用Promise或者链式Promise，但是还是需要不少的回调，虽然没有了嵌套；
+    ```js
+    asyncFun1().then(function(a) {
+        // do something with a in function 1
+        asyncFun2();
+    }).then(function(b) {
+        // do something with b in function 2
+        asyncFun3();
+    }).then(function(c) {
+        // do somethin with c in function 3
+    });
+    ```
+    3. **Async**：利用任务队列控制异步流程，使用async等辅助库，代价是需要引入额外的库，而且代码上也不够直观；
+    ```js
+    async.series([
+        function(callback) {
+            // do some stuff ...
+            callback(null, 'one');
+        },
+        function(callback) {
+            // do some more stuff ...
+            callback(null, 'two');
+        }
+    ],
+    // optional callback
+    function(err, results) {
+        // results is now equal to ['one', 'two']
+    });
+    ```
+
+    4. **Generator**：ES6带来了新一代解决回调地狱的神器——Generator，本意上应该是一种方便按照某种规则生成元素的迭代器，不过鉴于其特殊的语法和运行原理(利用Generaotr可以暂停代码执行的特性，我们通过将异步操作用yield关键字进行修饰，每当执行异步操作的时候，代码便在此暂停执行了。异步操作结束后，通过在回调函数里利用next(data)来控制Generator的执行流程，并顺便将异步操作的结果data回传给Generator，执行下一步。到此，整个异步流程得到了完美的控制。)，可以通过某种神奇的方式写出同步化的异步代码，从而避免回调，使代码更易阅读。可以看到，经过Generator重写后，代码形式上和我们熟悉的同步代码没什么二样了。😁
+    ```js
+    //利用Generator获取文章的第一评论作者的信息
+    function *getUserInfoByArticleFirstCommentId(id){
+      var article = yield $.get("getArticle",{id:id});
+      var comment = yield $.get("getComment",{id:getFirstCommentId(article)});
+      var user = yield $.get("getUserInfo",{id:comment.author});
+    }
+    ```
+    **虽然Async 和 Promise之流都在代码层面避免了地狱回调，但是代码组织结构上并没有完全摆脱异步的影子，和纯同步的写法相比，还是有很大的不同，写起来还是略麻烦。**
+
+    参考:
+
+    - [You Don't Know JS读书笔记之Async](http://aqua0706.github.io/2016/05/17/You-Don-t-Know-JS-Async-Performance1/)
+    - [使用Generator解决回调地狱](http://www.alloyteam.com/2015/04/solve-callback-hell-with-generator/)
+
+27. `Promise`的原理。
+
+    答案：回调函数的 **问题** 在于他剥夺了我们使用`return`和`throw`，这类关键字的能力，把程序执行的控制权交给回调函数，从而带来反转控制（inversion of control）。而`Promise`很好的解决了这一问题。如下面这个例子，并不是直接给`foo()`传递一个回调函数，而是`return`一个接收回调函数的事件-`promise`。
+    `promise`承诺我们一定可以在未来的某个时刻得到某个异步事件的结果，`fulfillment`或者`reject`，所以我们可以对结果安排一些之后要执行的操作，而不必担心这个异步事件什么时候执行完毕（time-independent）。这里p获得了这个promise执行的结果，我们可以通过then方法来决定reslove之后执行什么，来处理这些future value。inversion of inversion从而解决反转控制。
+    ```js
+    function foo(x) {
+        // 这里可以进行一些操作，然后构造并返回一个promise对象
+        //promise构造函数接收一个函数作为参数，该函数的两个参数分别是fulfillment方法和reject方法。
+        return new Promise( function(resolve,reject){
+            if(/*异步操作成功*/){
+              resolve(value);//如果异步操作成功，则fulfillment方法将对象的状态从Pengding->Fulfilled
+            }else{
+              reject(error);//如果异步操作失败，则reject方法将对象的状态Pengding->Rejected
+            }
+        } );
+    }
+    var p = foo( 42 );//p是这个promise执行的结果
+    p.then(function(value){
+      //成功
+    }，function(value){
+      //failure
+    }  );
+    ```
+    **什么是Promise？**
+
+    * `promise`是一个对象，代表某个未来才知道结果的事件，通常是一个异步操作。future value/asynchronous task
+    * 中立协商，promise event，提供统一的API(then之类的方法)，可以进行下一步处理。completion event
+
+    **Promise对象的两个特点：**
+
+    * 对象的状态不受外界影响：Promise对象代表一种异步操作，有三种状态Pengding(进行中)、Fulfilled(已完成)、Rejected(已失败)。只有异步操作的结果了一决定当前是那一种状态，任何其他操作都无法改变这个状态。而这些依赖时间的状态都被封装在promise内部，所以promise是time-independent的。不在乎结果、时间，都可以安排下一步的操作。
+    * 一旦状态改变，就永久不会再变，任何时候都可以得到这个结果：Promise对象改变只有两种可能，Pengding->Fulfilled、Pengding->Rejected。当promise对象状态发生改变，再对对象添加回调函数，也会立即得到这个结果，这一点与（Event）完全不同！
+    *事件的特点是：如果你错过它，再去监听，是得不到结果的。*
+
+    **promise链–异步流序列–流控制**　(string multiple Promises together to represent a sequence of async steps)：
+    * 每次调用then都会返回一个新创建的Promise对象；
+    * then()这个函数会接受一个回调函数，这个回调函数返回的值将使then()返回的promise resolved(也就是完成了)，并且这个值会通过promise链传给下一个promise对象。
+    * 使得promise在每一步真正异步的关键是我们传递的是一个promise对象或者是一个thenable，而不是一个可以立即获得的值。解包接收到的对象/thenable的过程是一个异步的过程。如果fulfillment、rejected返回的是一个对象，就解包，值传递。
+    * error会在promise链中一直传播，知道遇到一个显示定义的拒绝处理程序-rejected。
+    * then()方法，省略fulfillment就会默认接受什么值，传递什么值，省略reject就会默认throw这个错误。
+    (new promise构造promise时第一个参数用resolve，then方法里面用fulfilled参数)
+
+    参考:
+    - [You Don't Know JS读书笔记之Promise](http://aqua0706.github.io/2016/06/06/You-Don-t-Know-JS-Async-Performance2/)
+    - [JavaScript Promise迷你书（中文版）](http://liubin.org/promises-book/)
+
+28. 介绍一下什么是`generator`，如何利用`generator`实现异步流程控制？
+
+    答案：Generator Function(生成器函数)和Generator(生成器)是ES6引入的新特新。生成器的本质是一种特殊的迭代器。ES6里的迭代器并不是一种新的语法或者新的内置对象(构造函数)，而是一种协议，所有遵循了这个协议的对象都可以称之为[迭代器对象](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols)。
+    *迭代器协议定义了一种标准的方式来产生一个有限或无限序列的值；当一个对象被认为是一个迭代器时，它实现了一个next()方法，返回一个对象，被返回的对象拥有两个属性：done(boolean迭代器已经经过了被迭代序列时为 true,如果迭代器可以产生序列中的下一个值，则为 false)、value(迭代器返回的任何 JavaScript 值。done 为 true 时可省略)*
+
+    **生成器的语法**
+
+    生成器函数也是一种函数，语法上仅比普通function多了个星号* ，即function* ，在其函数体内部可以使用yield和yield* 关键字。
+    ```js
+    function* generateNaturalNumber() {
+        console.log('function start');
+        var i = 0;
+        // 为了便于观察log，将循环减小到5
+        while(i <= 5) {
+            console.log('yield start');
+            yield i;
+            console.log('yield end');
+            i++;
+        }
+        console.log('function end');
+    }
+    var result = generateNaturalNumber();
+    ```
+    运行以上代码发现什么log都没打印出来，继续打印result会得到类似这样的输出。
+    ```js
+    generateNaturalNumber {[[GeneratorStatus]]: "suspended", [[GeneratorFunction]]: function, [[GeneratorReceiver]]: Window}
+    ```
+    **生成器的原理**
+
+    事实上result就是一个生成器，所以调用生成器函数必定会返回一个生成器，同时不会执行内部的任何代码。生成器函数内的代码在调用生成器的next方法时才执行。
+    ![generator](/images/generator.png)
+
+    输出的结果和使用普通函数的结果完全一样，只要`done`的值不是`true`就可以一直调用`next`。很直观的可以看到调用`next`返回一个`object`，包含两个属性`done`和`value`，符合迭代器协议。同时注意`log`，调用第一次`next`打印了`function start`和`yield start`，后续调用打印了`yield end`和`yield start`，最后一次调用`next`打印了`yield end`和`function end`，最后一次`next`是指`done`为`false`。
+
+    **所以运行原理上是这样的:** 调用第一次`next`，从函数开头开始运行，直到遇到第一个`yield`，如果没有`yield`，就直接运行完整个函数。遇到`yield`则暂停运行，将`yield`后面的表达式求值之后返回，当作调用`next`返回的`value`属性值。调用第二次`next`，从上一次暂停处继续运行，直到遇到下一个`yield`，又暂停，以此循环，直到运行到`return`或者函数结尾，最后退出函数。
+
+    **next**
+
+    `generator.next(value)`则用来控制代码的运行并处理输入输出。上面讲了next的返回值，其实next也可以接受一个任意参数，该参数将作为上一个yield的返回值。yield作为一个关键字，也有返回值，其返回值就是下一次调用next传入的参数。**生成器的这个特性非常重要，利用该特性可以用同步的方式写出异步执行的代码，从而解决回调地狱（Callback Hell）的问题**
+    ```js
+    /**
+     * @description 处理输入和输出
+     */
+    function * input(){
+        let array = [];
+        while(i) {
+            array.push(yield array);
+        }
+    }
+    var gen = input();
+    console.log(gen.next("西")) // { value: [], done: false }
+    console.log(gen.next("部")) // { value: [ '部' ], done: false }
+    console.log(gen.next("世")) // { value: [ '部', '世' ], done: false }
+    console.log(gen.next("界")) // { value: [ '部', '世', '界' ], done: false }
+    ```
+    **所以运行原理上是这样的:** 调用第一次`next`，从函数开头开始运行，直到遇到第一个`yield`，暂停运行，虽然传入了一个参数“西”，但并没有接收的对象，所以被丢弃了。将`yield`后面的表达式求值之后返回。调用第二次`next`，从上一次暂停处继续运行，接收一个参数“部”，“部”就是这次yield后面array的值，直到遇到下一个`yield`，暂停，输出“部”。以此循环，直到运行到`return`或者函数结尾，最后退出函数。
+
+    **`yield`和`yield*`**
+    * yield后面可以跟任何表达式，表达式的值将作为调用next返回值的value属性值。
+    * yield* 后面只能跟迭代器，所以yield* genFun1会因为genFun1不是一个迭代器而报错。
+    * yield* 的官方名字叫做Delegating yield。
+    * yield* 的功能是将迭代控制权交给后面的迭代器，达到递归迭代的目的，就好比将genFun1的代码直接写在genFun2里面一样
+    ```js
+    function* genFun1() {
+        yield 2;
+        yield 3;
+        yield 4;
+    }
+    function* genFun2() {
+        yield 1;
+        yield* genFun1();
+        yield 5;
+    }
+    for(var i of genFun2()) {
+        console.log(i);
+    }//连续输出 1，2，3，4，5
+    ```
+
+    **如何利用`Generator`进行异步流程控制？**
+
+    利用`Generaotr`可以暂停代码执行的特性，我们通过将异步操作用`yield`关键字进行修饰，每当执行异步操作的时候，代码便在此暂停执行了。异步操作结束后，通过在回调函数里利用`next(data)`来控制`Generator`的执行流程，并顺便将异步操作的结果`data`回传给`Generator`，执行下一步。到此，整个异步流程得到了完美的控制。
+    这里我们需要一个运行器，运行器接受一个`Generator`函数，实例化一个`Generator`对象，然后启动任务，通过`next()`取得返回值，这个返回值其实是一个函数，提供了一个入口可以让我们可以方便的注入控住逻辑，包括：控制`Generator`向下执行、将异步执行的结果返回给`Generator`。
+    `co`是一个基于Generator（生成器）的异步流控制器，可以完美实现写出非阻塞的“同步代码”的目的。
+    ```js
+    function co(genFun) {
+        // 通过调用生成器函数得到一个生成器
+        var gen = genFun();
+        return function(fn) {
+            next();
+            function next(err, res) {
+                if(err) return fn(err);
+                // 将res传给next，作为上一个yield的返回值
+                var ret = gen.next(res);
+                // 如果函数还没迭代玩，就继续迭代
+                if(!ret.done) return ret.value(next);
+                // 返回函数最后的值
+                fn && fn(null, res);
+            }
+        }
+    }
+    ```
+    ```js
+    co(function*() {
+        var a = yield asyncFun1();
+        var b = yield asyncFun2(a);
+        var c = yield asyncFun3(b);
+        // do somethin with c
+    })();
+    ```
+    参考:
+
+    - [利用Generator实现JavaScript异步流程控制](http://natumsol.github.io/2016/11/21/use-generator-to-control-asynchronous-code/#利用Thunk来构造generator自动运行器)
+    - [ES6 Generator介绍](http://www.alloyteam.com/2015/03/es6-generator-introduction/)
+
+29. 说几个`ES6`的新特性。
+
+    答案：es6增加了箭头函数，增加了解构赋值，增加了generator，增加了一些新的数据类型，比如说map。set等。
+    1. 语法糖；
+    2. 解构；
+    3. let、const；
+    4. For-Of以及数组理解；
+    5. 箭头函数；
+    6. 延伸操作符、剩余变量、以及默认参数；
+    7. 类：ES6同样支持继承和扩展类
+    8. 模块
+    9. 映射和集合
+    10. 迭代器：像定义一个函数一样定义一个迭代器，但是在函数名和function关键字之间有一个*号，使用这种方法，作用域被挂起，并且你可以通过在返回值上调用next()来得到下一个值或者迭代它(generator);
+    11. 弱映射
+    12. proxies
+    13. 模板字符串
+    14. 标签
+
+    参考:
+
+    - [ES6中的新特性](http://www.html-js.com/article/The-new-characteristics-of-8-ES6-JavaScript-every-day-to-learn)
+    - [ECMAScript 6 入门](http://es6.ruanyifeng.com/#docs/simd)
+
+30. 客户端存储及他们的异同(例如：Cookie, SessionStorage和localStorage、webstorge等)
+
+    答案：共同点：都是保存在浏览器端，且同源的。
+
+    **区别：**
+
+    1. cookie数据在浏览器和服务器间来回传递,和服务器端进行交互的，一般用于标识用户身份。而sessionStorage和localStorage用于浏览器缓存数据，不会自动把数据发给服务器，在本地保存。
+    2. 由于Cookie是作为HTTP规范的一部分存在的，每次携带都会在HTTP头中，如果Cookie保存过多数据会带来性能问题，而WebStorage仅在客户端保存，不参与服务器的通信。一般浏览器不会修改cookie,但是会频繁操作cookie.
+    2. cookie数据还有路径（path）的概念，可以限制cookie只属于某个路径下。
+    3. 存储大小限制也不同，cookie数据不能超过4k，同时因为每次http请求都会携带cookie，所以cookie只适合保存很小的数据，如会话标识。sessionStorage和localStorage 虽然也有存储大小的限制，但比cookie大得多，一般为5M左右。
+    4. 数据有效期不同，sessionStorage仅在当前浏览器窗口关闭前有效，刷新页面后数据依旧存在，但关闭页面或关闭浏览器后就清除了,自然也就不可能持久保持；localStorage则是持久化的本地存储，除非被清除掉否则永久保存，窗口或浏览器关闭也一直保存，因此用作持久数据；cookie只在设置的cookie过期时间之前一直有效，即使窗口或浏览器关闭。
+    5. 作用域不同，sessionStorage不在不同的浏览器窗口中共享，即使是同一个页面；localStorage 在所有同源窗口中都是共享的；cookie也是在所有同源窗口中都是共享的。
+    6. Web Storage 支持事件通知机制（storage事件），可以将数据更新的通知发送给监听者。Web Storage 的 api 接口使用更方便。(注：Web Storage实际上由两部分组成：sessionStorage与localStorage。)
+
+      Cookie的操作需要自己封装getCookie,setCookie等，而Web Storage拥有setItem, getItem等方法可以使用，比如：
+      localStorage.setItem(“a”,”xxxxxx”); //设置
+      localStorage.getItem(“a”); //获取a的值
+      localStorage.removeItem(“a”); //删除a的值
+
+    参考:
+    - [使用JavaScript操作`Cookie`](http://www.fscwz.com/2015/11/10/JavaScript-cookie/)
+    - [`Session`Storage localStorage 和 `Cookie` 之间的区别](https://zhidao.baidu.com/question/753078779171743764.html)
+31. `DOM1` `DOM2` `DOM3`都有什么不同。
+
+    答案：文档对象模型是一种与编程语言及平台无关的API(Application programming Interface)，借助于它，程序能够动态地访问和修改文档内容、结构或显示样式。W3C协会早在1988年就开始了DOM标准的制定，W3C DOM标准可以分为DOM1,DOM2,DOM3三个版本。
+
+    DOM1级主要定义的是HTML和XML文档的底层结构。DOM2和DOM3级别则在这个结构的基础上引入了更多的交互能力，也支持了更高级的XML特性。为此DOM2和DOM3级分为许多模块（模块之间具有某种关联），分别描述了DOM的某个非常具体的子集。
+
+    DOM0:事件是元素的方法；DOM2:添加事件绑定与删除函数，有DOM2级事件流；DOM3:在DOM2级事件的基础上重新定义了这些事件，也添加了一些新事件，还添件了自定义事件。
+
+    1、DOM0级(DOM1级之前)事件处理方式：
+
+    通过javascript制定事件处理程序的传统方式。就是将一个函数赋值给一个事件处理属性。第四代web浏览器出现，至今为所有浏览器所支持。优点，简单且具有跨浏览器的优势。
+    ```js
+    var btn = document.getElementById("btn");
+              btn.onclick = function(){
+                  alert(this.id);//this指定当前元素btn
+    }
+    ```
+    删除DOM0事件处理程序，只要将对应事件属性置为null即可。`btn.onclick = null;`
+
+    *缺点：一个事件处理程序只能对应一个处理函数。*
+
+    2、DOM2级事件处理方式
+
+    DOM2级事件处理方式指定了，添加事件处理程序和删除事件处理程序的方法。分别是：
+    * addEventListener(eventName,func,isPuhuo);
+    * removeEventListener(eventName,func,isPuhuo);
+
+    ```js
+    var btn = document.getElementById("btn");
+    handler = function(){
+        ……
+    }
+    addEventListener("click",handler,false/true);
+    removeEventListener("click",handler,false/true);
+    ```
+    参数分别是，事件处理属性名称，处理函数，是否在捕获时执行事件处理函数。
+
+    a)  eventName的值均不含on,例如注册鼠标点击事件eventName为“click”
+
+    b)  处理函数中的this依然指的是指当前dom元素
+
+    c)  通过addEventListener添加的事件处理程序，只能通过removeEventListener来删除，也就是说通过addEventListener添加的匿名函数将无法被删除。
+
+    d)IE中的DOM2级事件处理使用了attachEvent和detachEvent来实现。这俩个方法接受俩个相同的参数，事件处理名称和事件处理函数。IE8级更早版本只支持冒泡型事件，所以attachEvent添加的事件都会被添加到冒泡阶段。
+    ```js
+    var btn = document.getElementById("btn");
+    btn.attachEvent("onclick",function(){
+            alert(this);//此处this是window
+    });
+    ```
+    **注意:** 通过attachEvent添加的事件第一个参数是“onclick”而非标准事件中的“click”。在使用attachEvent方法和DOM0级事件处理程序的主要区别在于事件处理程序的作用域。采用DOM0级处理方式，事件处理程序会在其所属元素的作用域内运行。使用attachEvent，事件处理程序会在全局作用域内运行，因此this等于window。
+
+    3、DOM3事件
+
+    DOM浏览器中可能发生的事件有很多种，不同事件类型具有不同的信息，DOM3级事件规定了一下几种事件：
+        1）UI事件，当用户与页面上的元素交互时触发；
+        2）焦点事件，当元素获得或者失去焦点时触发；
+        3）鼠标事件，当用户通过鼠标在页面上执行操作时触发；
+        4）滚轮事件，当使用鼠标滚轮（或类似设备）时触发；
+        5）文本事件，当在文档中，输入文本时触发；
+        6）键盘事件，当用户通过键盘在页面上执行操作时触发；
+        7）合成事件，当为IME（Input Method Editor，输入法编辑器）输入字符时触发；
+        8）变动事件，当底层Dom结构发生变化时触发；
+        DOM3级事件模块在DOM2级事件的基础上重新定义了这些事件，也添加了一些新事件。包括IE9在内的主流浏览器都支持DOM2级事件，IE9也支持DOM3级事件。
+    **DOM中的事件模拟（自定义事件）：**
+
+    DOM3级还定义了自定义事件，自定义事件不是由DOM原生触发的，它的目的是让开发人员创建自己的事件。要创建的自定义事件可以由createEvent("CustomEvent");返回的对象有一个initCustomEvent（）方法接收如下四个参数。
+        1）type：字符串，触发的事件类型，自定义。例如 “keyDown”，“selectedChange”;
+        2）bubble（布尔值）：标示事件是否应该冒泡；
+        3）cancelable(布尔值)：标示事件是否可以取消；
+        4）detail（对象）：任意值，保存在event对象的detail属性中；
+    可以像分配其他事件一样在DOM中分派创建的自定义事件对象。
+    ```js
+      var  div = document.getElementById("myDiv");
+      EventUtil.addEventHandler(div,"myEvent", function () {
+      alert("div myEvent!");
+      });
+      EventUtil.addEventHandler(document,"myEvent",function(){
+      alert("document myEvent!");
+      });
+      if(document.implementation.hasFeature("CustomEvents","3.0")){
+      var e = document.createEvent("CustomEvent");
+      e.initCustomEvent("myEvent",true,false,"hello world!");
+      div.dispatchEvent(e);
+      }
+    ```
+    这个例子中创建了一个冒泡事件“myEvent”。而event.detail的值被设置成了一个简单的字符串，然后在div和document上侦听该事件，因为在initCustomEvent中设置了事件冒泡。所以当div激发该事件时，浏览器会将该事件冒泡到document。
+
+    参考:
+
+      - [DOM0，DOM2，DOM3事件处理方式区别](http://www.qdfuns.com/notes/11861/e21736a0b15bceca0dc7f76d77c2fb5a.html)
+
 32. 什么是`XSS`，如何在实际项目中防范？
+
+    答案：
+
 33. 什么是`XSRF`， 如何在实际项目中防范？
+
+    答案：Cross-Site Request Forgery，跨站点伪造请求(通常缩写为 CSRF 或者 XSRF)是一种网络攻击方式，该攻击通过伪装来自受信任用户的请求来利用受信任的网站,可以在受害者毫不知情的情况下以受害者名义伪造请求发送给受攻击站点，从而在未授权的情况下执行在权限保护之下的操作，具有很大的危害性。
+
+    CSRF 攻击类似 XSS 攻击，都是在页面中嵌入特殊部分引诱或强制用户操作从而得到破坏等的目的，区别就是迫使用户 访问特定 URL / 提交表单 还是执行 javascript 代码。
+
+    具体来讲，可以这样理解CSRF攻击：攻击者盗用了你的身份，以你的名义发送恶意请求，对服务器来说这个请求是完全合法的，但是却完成了攻击者所期望的一个操作，比如以你的名义发送邮件、发消息，盗取你的账号，添加系统管理员，甚至于购买商品、虚拟货币转账等。
+
+    当你访问 fuck.com 黑客页面的时候，页面上放了一个按钮或者一个表单，URL/action 为 http://you.com/delete-myself，这样引导或迫使甚至伪造用户触发按钮或表单。在浏览器发出 GET 或 POST 请求的时候，它会带上 you.com 的 cookie，如果网站没有做 CSRF 防御措施，那么这次请求在 you.com 看来会是完全合法的，这样就会对 you.com 的数据产生破坏。
+
+    比如你在你的浏览器上登陆了网上银行，这个时候有人通过电子邮件给你发了一个链接，这个链接是对你这个银行的一个操作，比如说一个转账操作，这个链接后赋了几个参数，比如说，from等于你的账号，to等于他的账号，money=1000，因为你已经登陆了，当你点击这个链接，在浏览器发出 GET 或 POST 请求的时候，它会带上当前站点的 cookie，如果网站没有做 CSRF 防御措施，那么这次请求在银行看来会是完全合法的，就会执行转账的操作。这就完成了一个跨站请求伪造的攻击。
+
+    **如何防止 CSRF ？**
+    CSRF 主流防御方式是在后端生成表单的时候生成一串随机 token ，内置到表单里成为一个字段，同时，将此串 token 置入 session 中。每次表单提交到后端时都会检查这两个值是否一致，以此来判断此次表单提交是否是可信的。提交过一次之后，如果这个页面没有生成 CSRF token ，那么 token 将会被清空，如果有新的需求，那么 token 会被更新。
+
+    攻击者可以伪造 POST 表单提交，但是他没有后端生成的内置于表单的 token，session 中有没有 token 都无济于事。
+
+    参考:
+
+      - [CSRF CORS](http://www.lxway.com/482281211.htm)
+
 34. `Object` ，`Array`和`String`对象的常用方法有哪些？
+
+    答案：
+
 35. 数组如何实现去重、求交集、求并集和洗牌(`shuffle`)？
 36. `JavaScript`的垃圾回收机制
 37. 常见的`JavaScript`设计模式
