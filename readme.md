@@ -421,8 +421,9 @@
    整个过程如图所示：
    ！[原型链](/images/原型链.png)
 
-   **继承**：实现的本质是重写原型对象，而不使用默认提供的原型对象，代之以一个新类型的实例。利用原型链，继承别的对象的方法。
+   **继承**：实现的本质是重写原型对象，而不使用默认提供的原型对象，代之以一个新类型的实例。利用原型链，继承别的对象的方法。类式继承和原型式继承
    ```js
+   //类式继承
       function superType()
       {
 	       this.name = true;
@@ -439,6 +440,30 @@
        }
       var instance = new subType();//实例化超类对象
       alert(instance.getSuperName())//true
+
+      /* -- 原型式继承 -- */
+　　//clone()函数用来创建新的类Person对象
+　　var clone =function(obj){
+      var _f =function(){};
+         　　//这句是原型式继承最核心的地方，函数的原型对象为对象字面量
+         　　_f.prototype = obj;
+         　　returnnew _f;
+    　　}
+    //先声明一个对象字面量
+    var Person = {
+       　　name:'Darren',
+       　　getName:function(){
+          　　returnthis.name;
+       　　}
+    }
+    //不需要定义一个Person的子类，只要执行一次克隆即可
+    var Programmer = clone(Person);
+    //可以直接获得Person提供的默认值，也可以添加或者修改属性和方法
+    alert(Programmer.getName())
+    Programmer.name ='Darren2'
+    alert(Programmer.getName())
+    //声明子类,执行一次克隆即可
+    var Someone = clone(Programmer);
    ```
    **类**：在面向对象编程中，类（class）是对象（object）的模板，定义了同一组对象（又称"实例"）共有的属性和方法。Javascipt语法不支持"类"（class），导致传统的面向对象编程方法无法直接使用，但是可以用一些变通的方法，模拟出"类"。
 
@@ -473,7 +498,7 @@
   3.1 封装：
   一个对象里面，定义一个构造函数createNew()，用来生成实例。
 
-  3.2 继承：
+  3.2 继承：类式继承和原型式继承
   让一个类继承另一个类，实现起来很方便。只要在前者的createNew()方法中，调用后者的createNew()方法即可。
 
   3.3 私有属性和私有方法：
@@ -1210,6 +1235,7 @@
     参考:
     - [使用JavaScript操作`Cookie`](http://www.fscwz.com/2015/11/10/JavaScript-cookie/)
     - [`Session`Storage localStorage 和 `Cookie` 之间的区别](https://zhidao.baidu.com/question/753078779171743764.html)
+
 31. `DOM1` `DOM2` `DOM3`都有什么不同。
 
     答案：文档对象模型是一种与编程语言及平台无关的API(Application programming Interface)，借助于它，程序能够动态地访问和修改文档内容、结构或显示样式。W3C协会早在1988年就开始了DOM标准的制定，W3C DOM标准可以分为DOM1,DOM2,DOM3三个版本。
@@ -1304,7 +1330,77 @@
 
 32. 什么是`XSS`，如何在实际项目中防范？
 
-    答案：
+    答案：跨站脚本攻击（XSS，Cross-site scripting）是最常见和基本的攻击Web网站的方法。目标是让其他站点的js文件运行在目标站点的上，这主要发生在页面渲染阶段。在该阶段发生了某些非预期的脚本行为，该脚本可能来自用户的输入，也可能来自域外的其他js文件，不一而足。因此XSS根据用户输入数据以何种形式、何时触发XSS、是否有后端服务器的参与划分为三种类型，分别是反射型XSS、持久型XSS和DOM XSS。
+
+    xss就是“在页面执行你想要的js”，也就是说，只要遵循一个原则——后端永远不信任前端输入的任何信息，无论是输入还是输出，都对其进行html字符的转义，那么漏洞就基本不存在了。
+
+    反射型XSS
+
+    反射型XSS，顾名思义在于“反射”这个一来一回的过程。反射型XSS的触发有后端的参与，而之所以触发XSS是因为后端解析用户在前端输入的带有XSS性质的脚本或者脚本的data URI编码，后端解析用户输入处理后返回给前端，由浏览器解析这段XSS脚本，触发XSS漏洞。因此如果要避免反射性XSS，需要服务端和前端共同预防，在后端解析前端的数据时首先做相关的字串检测和转义处理；针对用户输入的数据做解析和转义，对于前端开发而言，则是善于使用escape，针对data URI内容做正则判断，禁止用户输入非显示信息，如MIME类型为“text/html，text/plain”类型的内容,保证数据源的可靠性。
+    ```js
+    e.x.localhost/test.php
+    <?php echo $_GET['name'] ?>
+    如果通过
+    localhost/test.php?name=<script>alert(document.cookie)</script>
+    访问页面，那么经过后端服务器的处理，就会造成反射性XSS的发生。
+    ```
+    同理，通过传入data uri编码的字符串也会导致XSS，如
+    `localhost/test.php?name=data:text/html;charset=utf-8;base64,PHNjcmlwdD5hbGVydChkb2N1bWVudC5jb29raWUpPC9zY3JpcHQ+``
+    会导致同样的问题。该段编码的字串解码后是“<script>alert(document.cookie)</script>”。
+
+    持久型XSS
+
+    持久型XSS仍然需要服务端的参与，它与反射型XSS的区别在于XSS代码是否持久化（硬盘，数据库）。反射型XSS过程中后端服务器仅仅将XSS代码保存在内存中，并未持久化，因此每次触发反射性XSS都需要由用户输入相关的XSS代码；而持久型XSS则仅仅首次输入相关的XSS代码，保存在数据库中，当下次从数据库中获取该数据时在前端未加字串检测和excape转码时，会造成XSS，而且由于该漏洞的隐蔽性和持久型的特点，在多人开发的大型应用和跨应用间的数据获取时造成的大范围的XSS漏洞，危害尤其大。这就需要开发人员培养良好的WEB前端安全意识，不仅仅不能相信用户的输入，也不能完全相信保存在数据库中的数据（即后端开发人员忽视的数据安全检测）。针对持久型XSS没有好的解决方式，只能由开发人员保证。当然规则是由开发者制定，如果忽略用户体验的话，可以制定一套严谨的输入规则，对相关关键词和输入类型（如data URI检测，禁止输入）的检测和禁止，尽可能规避用户发现XSS漏洞的可能性，从源头处理。
+
+    DOM XSS
+
+    DOM XSS完全在前端浏览器触发，无需服务端的参与，因此这是前端开发工程师的“地盘”，理应获得我们的关注。
+    ```js
+    e.x.localhost/test.html
+
+    <script>
+    eval('alert(location.hash.slice("1"))');
+    </script>
+    ```
+    如果访问localhost/test.html#document.cookie ，那么就会触发最简单的危害非常大的DOM XSS。它完全没有服务端的参与，仅仅由用户的输入和不安全的脚本执行造成，当然在本例中仅仅是最简单的情况，如果用户输入字符串‘<script src="http://.../abc.js"></script>’或者text/html格式的data URI，则更难检测，也危害更大，黑客操作起来更为容易。
+
+    因此预防DOM XSS，需要前端开发人员警惕用户所有的输入数据，做到数据的escape转义，同时尽可能少的直接输出HTML的内容；不用eval、new Function、setTimeout等较为hack的方式解析外站数据和执行js脚本；如果在考虑安全性的前提下需要获取外站脚本的执行结果，可以采用前端沙盒（建立空的iframe执行脚本，该iframe无法操作当前文档对象模型）、worker线程的方式完成，保证DOM的安全。
+
+    对于DOM XSS，则需要慎之又慎。由于造成XSS的原因在于用户的输入，因此在前端，需要特别注意以下的用户输入源：`document.URL`,`location.hash`,`location.research`,`document.referrer`(此处应尤为注意，referrer属性虽然可用于避免CSRF，但可触发XSS攻击),`XHR返回值`（跨域返回值）,`form表单及各种input框`,针对以上输入源，需要做相对于的检测和转义。在以上输入源中获取数据后，可能会有各种DOM操作或纯粹的js计算，这些操作则是真正触发XSS的罪魁祸首：
+
+    1,直接输出HTML内容
+    ```JS
+      document.body.innerHTML = ...
+      document.body.outterHTML = ...
+      document.write()
+    ```
+
+    2,HTML标签内联脚本
+    ```JS
+      <a href="" onclick="handleClick();"></a>
+      <img src='abc' onerror=alert('error')>
+    ```
+
+    3,直接执行脚本
+    ```JS
+      eval
+      new Function(){}
+      setTimeout()
+      window.execScript()
+    ```
+
+    4,打开新页面触发XSS（包括反射型XSS和持久型XSS）
+    ```js
+      window.open()
+      location.href = ...
+      location.hash = ...
+    ```
+    在操作DOM时，需要尤其注意上述操作，针对可能造成的XSS需要进行字串转义。当然，有些操作是完全可以避免的：对于innerHTML的拼接操作，需要摒弃jQuery式的链式操作而使用前端模版如artTemplate，也可选择使用由后端渲染好的可靠的数据，这样既保证性能也确保安全；对于HTML标签内嵌js，则需要完全避免，这是一种容错率很低的实现；直接执行脚本和解析数据，则需避免eval和new Funciton等操作，改为JSON.parse、iframe沙盒和webWorker执行；而针对打开新页面触发的XSS则需要开发人员自行把控。
+
+    参考:
+
+      - [XSS分析及预防](https://segmentfault.com/a/1190000005032978)
+      - [XSS零碎指南](http://www.cnblogs.com/hustskyking/p/xss-snippets.html)
 
 33. 什么是`XSRF`， 如何在实际项目中防范？
 
@@ -1314,14 +1410,25 @@
 
     具体来讲，可以这样理解CSRF攻击：攻击者盗用了你的身份，以你的名义发送恶意请求，对服务器来说这个请求是完全合法的，但是却完成了攻击者所期望的一个操作，比如以你的名义发送邮件、发消息，盗取你的账号，添加系统管理员，甚至于购买商品、虚拟货币转账等。
 
-    当你访问 fuck.com 黑客页面的时候，页面上放了一个按钮或者一个表单，URL/action 为 http://you.com/delete-myself，这样引导或迫使甚至伪造用户触发按钮或表单。在浏览器发出 GET 或 POST 请求的时候，它会带上 you.com 的 cookie，如果网站没有做 CSRF 防御措施，那么这次请求在 you.com 看来会是完全合法的，这样就会对 you.com 的数据产生破坏。
-
-    比如你在你的浏览器上登陆了网上银行，这个时候有人通过电子邮件给你发了一个链接，这个链接是对你这个银行的一个操作，比如说一个转账操作，这个链接后赋了几个参数，比如说，from等于你的账号，to等于他的账号，money=1000，因为你已经登陆了，当你点击这个链接，在浏览器发出 GET 或 POST 请求的时候，它会带上当前站点的 cookie，如果网站没有做 CSRF 防御措施，那么这次请求在银行看来会是完全合法的，就会执行转账的操作。这就完成了一个跨站请求伪造的攻击。
+    比如你在你的浏览器上登陆了网上银行，这个时候有人通过电子邮件给你发了一个链接，这个链接是对你这个银行的一个操作，比如说一个转账操作，这个链接后赋了几个参数，比如说，from等于你的账号，to等于他的账号，money=1000，因为你已经登陆了，当你点击这个链接，黑客页面上放了一个按钮或者一个表单，引导或迫使甚至伪造用户触发按钮或表单，来触发转账事件。在浏览器发出 GET 或 POST 请求的时候，它会带上当前站点的 cookie，如果网站没有做 CSRF 防御措施，那么这次请求在银行看来会是完全合法的，就会执行转账的操作。这就完成了一个跨站请求伪造的攻击。
 
     **如何防止 CSRF ？**
-    CSRF 主流防御方式是在后端生成表单的时候生成一串随机 token ，内置到表单里成为一个字段，同时，将此串 token 置入 session 中。每次表单提交到后端时都会检查这两个值是否一致，以此来判断此次表单提交是否是可信的。提交过一次之后，如果这个页面没有生成 CSRF token ，那么 token 将会被清空，如果有新的需求，那么 token 会被更新。
+    1. 增加攻击的难度。
 
-    攻击者可以伪造 POST 表单提交，但是他没有后端生成的内置于表单的 token，session 中有没有 token 都无济于事。
+      GET请求是很容易创建的，用户点击一个链接就可以发起GET类型的请求，而POST请求相对比较难，攻击者往往需要借助JavaScript才能实现；因此，确保form表单或者服务端接口只接受POST类型的提交请求，可以增加系统的安全性。
+    2. 在请求地址中添加token并验证
+
+      CSRF攻击之所以能够成功，是因为攻击者可以伪造用户的请求，该请求中所有的用户验证信息都存在于Cookie中，因此攻击者可以在不知道这些验证信息的情况下直接利用用户自己的Cookie来通过安全验证。由此可知，抵御CSRF攻击的关键在于：在请求中放入攻击者所不能伪造的信息，并且该信息不存在于Cookie之中。鉴于此，系统开发者可以在HTTP请求中以参数的形式加入一个随机产生的token，并在服务器端建立一个拦截器来验证这个token，如果请求中没有token或者token内容不正确，则认为可能是CSRF攻击而拒绝该请求。CSRF 主流防御方式是在后端生成表单的时候生成一串随机 token ，内置到表单里成为一个字段，同时，将此串 token 置入 session 中。每次表单提交到后端时都会检查这两个值是否一致，以此来判断此次表单提交是否是可信的。提交过一次之后，如果这个页面没有生成 CSRF token ，那么 token 将会被清空，如果有新的需求，那么 token 会被更新.攻击者可以伪造 POST 表单提交，但是他没有后端生成的内置于表单的 token，session 中有没有 token 都无济于事。
+
+      对请求进行认证，确保该请求确实是用户本人填写表单或者发起请求并提交的，而不是第三者伪造的。正常情况下一个用户提交表单的步骤如下：
+      * 用户点击链接(1) -> 网站显示表单(2) -> 用户填写信息并提交(3) -> 网站接受用户的数据并保存(4)而一个CSRF攻击则不会走这条路线，而是直接伪造第2步用户提交信息
+      * 直接跳到第2步(1) -> 伪造要修改的信息并提交(2) -> 网站接受攻击者修改参数数据并保存(3)只要能够区分这两种情况，就能够预防CSRF攻击。那么如何区分呢？ 就是对第2步所提交的信息进行验证，确保数据源自第一步的表单。具体的验证过程如下：
+      * 用户点击链接(1) -> 网站显示表单，表单中包含特殊的token同时把token保存在session中(2) -> 用户填写信息并提交，同时发回token信息到服务端(3) -> 网站比对用户发回的token和session中的token，应该一致，则接受数据，并保存
+      这样，如果攻击者伪造要修改的信息并提交，是没办法直接访问到session的，所以也没办法拿到实际的token值；请求发送到服务端，服务端进行token校验的时候，发现不一致，则直接拒绝此次请求。
+
+    3. 验证HTTP Referer字段
+
+      还可以通过验证HTTP Referer字段，根据HTTP协议，在HTTP头中有一个字段叫Referer，它记录了该HTTP请求的来源地址。在通常情况下，访问一个安全受限页面的请求必须来自于同一个网站。比如某银行的转账是通过用户访问http://bank.test/test?page=10&userID=101&money=10页面完成，用户必须先登录bank. test，然后通过点击页面上的按钮来触发转账事件。当用户提交请求时，该转账请求的Referer值就会是转账按钮所在页面的URL（本例中，通常是以bank. test域名开头的地址）。而如果攻击者要对银行网站实施CSRF攻击，他只能在自己的网站构造请求，当用户通过攻击者的网站发送请求到银行时，该请求的Referer是指向攻击者的网站。因此，要防御CSRF攻击，银行网站只需要对于每一个转账请求验证其Referer值，如果是以bank. test开头的域名，则说明该请求是来自银行网站自己的请求，是合法的。如果Referer是其他网站的话，就有可能是CSRF攻击，则拒绝该请求。
 
     参考:
 
@@ -1329,14 +1436,478 @@
 
 34. `Object` ，`Array`和`String`对象的常用方法有哪些？
 
+    答案：**Object:**
+
+    JavaScript 原生对象，所有的其他对象都继承自这个对象。Object本身也是有个构造函数，可以直接通过它来生成新对象.
+
+    1. var o = new Object();(同o = {};字面量写法)
+      接受一个参数，如果带参数是一个对象，就直接返回改对象，如果是一个原始类型值，就返回该值对应的包装对象。如：new Object(123) instanceof Number //true；
+    2. Object()可以将任何值转换为对象，常用于保证某个值一定是对象。
+      ```js
+      Object() // 返回一个空对象
+      Object() instanceof Object // true
+
+      Object('foo') // 等同于 new String('foo')
+      Object('foo') instanceof Object // true
+      Object('foo') instanceof String // true
+
+      var arr = [];
+      Object(arr) // 返回原数组
+      Object(arr) === arr // true
+      //判断变量是否为对象的函数
+      function isObject(value) {
+        return value === Object(value);
+      }
+      isObject([]) // true
+      isObject(true) // false
+      ```
+    3. 静态方法：Object.keys(),Object.getOwnPropertyNames()一般用来遍历对象的属性。它们的参数都是一个对象，都返回一个数组，该数组的成员都是对象自身的（而不是继承的）所有属性名。它们的区别在于，Object.keys方法只返回可枚举的属性（关于可枚举性的详细解释见后文），Object.getOwnPropertyNames方法还返回不可枚举的属性名。
+    ```js
+    var a = ["Hello", "World"];
+    Object.keys(a)// ["0", "1"]
+    Object.getOwnPropertyNames(a)// ["0", "1", "length"]
+    ```
+    4. 实例方法：Object.prototype.valueOf()返回一个对象的“值”，默认情况下返回对象本身。主要用途是，JavaScript自动类型转换时会默认调用这个方法，所以，如果自定义valueOf方法，就可以得到想要的结果。Object.prototype.toString()，toString方法的作用是返回一个对象的字符串形式，默认情况下返回类型字符串。其中第二个Object表示该值的构造函数,因此可以用来判断一个值的类型。比typeof运算符更准确.
+    ```js
+    var o = {};
+    o.toString() // "[object Object]"
+    //数组、字符串、函数、Date对象都分别部署了自己版本的toString方法，覆盖了Object.prototype.toString方法。
+    [].toString()//"[object Number]"
+    ```
+
+    **Array:**
+
+    1. JavaScript 内置对象，同时也是一个构造函数，可以用它生成新数组。
+    2. js中数组中的元素不必是同一种数据类型。用`Array.isArray()`来判断一个对象是否为数组。它可以弥补typeof运算符的不足
+
+    **数组的存取函数：(返回目标数组的某种变体)**
+
+    1. `Array.indexOf()` 返回元素索引/-1不存在(如果数组包含多个相同元素，返回第一个与参数相同的元素的索引)；
+    2. `Array.lastIdexOf()` 返回相同元素中最后一个元素的索引/-1不存在；
+    3. 数组转换为字符串：`Array.join()`、`Array.toString()` 返回一个包含数组所有元素的字符串，个元素之间用逗号分隔开。`Array.join("")`就没有逗号了。
+    4. 已有数组创建新数组：`Array.concat()`合并多个数组创建新数组(数组本身不变)、`Array.slice()`提取原数组的一部分，返回一个新数组，原数组不变。`slice`方法的一个重要应用，是将类似数组的对象转为真正的数组。
+    ```js
+    Array.prototype.slice.call({ 0: 'a', 1: 'b', length: 2 })
+    // ['a', 'b']
+    ```
+
+    **可变函数：(数组本身发生变化)**
+
+    1. 为数组添加元素：`Array.push()`数组末尾添加、`Array.unshift()`数组开头添加；
+    2. 从数组中删除元素：`Array.pop()`删除数组末尾、`Array.shift()`删除数组开头；
+    3. 从数组中间位置添加和删除元素：`Array.splice()`即可添加又可删除(参数1：起始索引；参数2：删除的个数--添加元素时为0；参数3：想要添加进数组的元素)；
+    4. 为数组排序：`Array.reverse()`反转元素顺序、`Array.sort()`按照字符串类型排序，可以传入比较函数。按照number类型排序；
+
+    **迭代器方法：(对数组中的每个元素应用一个函数，可以返回一个值、一组值、或者一个数组)**
+
+    **不生成新数组：**(执行某种操作，或返回一个值)
+
+    1. `Array.forEach(callback)`:接收一个函数作为参数，对数组中的每个元素使用该函数；
+    2. `Array.every()`:接收一个返回值为boolean类型的函数，对数组中的每个元素使用该函数，如果对于所有的函数，该函数均返回true，则该方法返回true；
+    3. `Array.some()`:接收一个返回值为boolean类型的函数，对数组中的每个元素使用该函数，只要有一个元素使得该函数返回true，则该方法返回true；
+    4. `Array.reduce()`:接收一个函数，返回一个值，从左到右执行，新返回+后一个元素，一起调用callback；
+    5. `Array.reduceRight()`:同上，但是从右到左执行。
+
+    **生成新数组：**
+
+    1. `Array.map()`:对数组中的每个元素使用某个函数，并将结果映射到一个新的数组中返回；
+    2. `Array.filter()`:传入布尔函数，返回包含结果为true的所有元素的新数组。
+
+    **String:**
+    所谓“包装对象”，就是分别与数值、字符串、布尔值相对应的Number、String、Boolean三个原生对象。这三个原生对象可以把原始类型的值变成（包装成）对象。
+    * String对象是JavaScript原生提供的三个包装对象之一，用来生成字符串的包装对象
+    * String.length属性返回字符串的长度。
+    * String.charAt(index)返回指定位置的字符，参数是从0开始编号的位置。
+    * String.charCodeAt()方法返回给定位置字符的Unicode码点（十进制表示）。
+    * String.concat()方法用于连接两个字符串，返回一个新字符串，不改变原字符串。
+    * String.slice()用于从原字符串取出子字符串并返回，不改变原字符串。(开始位置，结束位置)
+    * String.substring()用于从原字符串取出子字符串并返回，不改变原字符串。(开始位置，结束位置)
+    * String.substr()用于从原字符串取出子字符串并返回，不改变原字符串。(开始位置，长度)
+    * String.indexOf()、String.lastIndexOf()确定一个字符串在另一个字符串中的位置，都返回一个整数，表示匹配开始的位置。如果返回-1，就表示不匹配。两者的区别在于，indexOf从字符串头部开始匹配，lastIndexOf从尾部开始匹配。
+    * String.trim()用于去除字符串两端的空格，返回一个新字符串，不改变原字符串。
+    * String.toLowerCase()、String.toUpperCase()一个字符串全部转为小写/大写，它们都返回一个新字符串，不改变原字符串。
+    * String.localeCompare()方法用于比较两个字符串,会考虑自然语言的顺序。举例来说，正常情况下，大写的英文字母小于小写字母。
+    * String.match()确定原字符串是否匹配某个子字符串，返回一个数组，成员为匹配的第一个字符串。如果没有找到匹配，则返回null。
+    * String.search()用法等同于match，但是返回值为匹配的第一个位置。如果没有找到匹配，则返回-1。
+    * String.replace()用于替换匹配的子字符串，一般情况下只替换第一个匹配（除非使用带有g修饰符的正则表达式）。
+    *  String.split()字符串生成数组，丢弃分隔符。
+    参考:
+
+      - [Object对象](http://javascript.ruanyifeng.com/stdlib/object.html)
+      - [Array 对象](http://javascript.ruanyifeng.com/stdlib/array.html)
+      - [String对象](http://javascript.ruanyifeng.com/stdlib/string.html)
+
+35. 数组如何实现去重、数组判断、求交集、求并集、求差集和洗牌(`shuffle`)？
+
+    答案：
+    **数组去重**
+
+    Array类型并没有提供去重复的方法，如果要把数组的重复元素干掉，那得自己想办法：
+    ```js
+    //利用数组的indexOf方法
+    function unique (arr) {
+      var result = [];
+      for (var i = 0; i < arr.length; i++)
+      {
+        if (result.indexOf(arr[i]) == -1) result.push(arr[i]);
+      }
+      return result;
+    }
+
+    //利用hash表,可能会出现字符串和数字一样的话出错，如var a = [1, 2, 3, 4, '3', 5],会返回[1, 2, 3, 4, 5]
+    //这里用对象，键值对模拟hash表，如果arr[i]不在我的键里面，我就将结果放进result，这里注意3和“3”作为键是一样的，系统会做强制转换~
+    function unique (arr)
+    {
+        var hash = {},result = [];
+        for(var i = 0; i < arr.length; i++)
+        {
+            if (!hash[arr[i]])
+            {
+                hash[arr[i]] = true;
+                result.push(arr[i]);
+            }
+        }
+        return result;
+    }
+
+    //法3：先sort(),然后比较相邻，没有上面那个问题
+    //排序后比较相邻，如果一样则放弃，否则加入到result。
+    function unique (arr) {
+        arr.sort();
+        var result=[arr[0]];
+        for(var i = 1; i < arr.length; i++){
+            if( arr[i] !== arr[i-1]) {
+                result.push(arr[i]);
+            }
+        }
+        return result;
+    }
+    ```
+    **数组判断**
+    ```js
+    //自带的isArray方法
+    var o = [];
+    Array.isArray(o );//true
+    //利用instanceof运算符
+    o instanceof Array;//true
+    //利用toString的返回值
+    function isArray(o) {
+      return Object.prototype.toString.call(o) === '[object Array]';
+    }
+    ```
+    **数组求交集**
+    ```js
+    //利用filter和数组自带的indexOf方法
+    array1.filter(function(n) {
+      return array2.indexOf(n) != -1
+    });
+    ```
+    **数组求并集**
+    ```js
+    //方法原理：连接两个数组并去重
+    function arrayUnique(array) {
+        var a = array.concat();
+        for(var i=0; i<a.length; ++i) {
+            for(var j=i+1; j<a.length; ++j) {
+                if(a[i] === a[j])
+                    a.splice(j--, 1);//删除的是j，然后++j继续比较
+            }
+        }
+
+        return a;
+    };
+    ```
+    **数组求差集**
+    ```js
+    //利用filter和indexOf方法
+    Array.prototype.diff = function(a) {
+      return this.filter(function(i) {return a.indexOf(i) < 0;});
+    };
+    ```
+    **数组洗牌 shuffle**
+    ```js
+    //每次随机抽一个数并移动到新数组中，通过splice来去掉原数组已选项
+    function shuffle(array) {
+        var copy = [],
+            n = array.length,
+            i;
+        // 如果还剩有元素。。
+        while (n) {
+            // 随机选取一个元素
+            i = Math.floor(Math.random() * n--);
+            // 移动到新数组中
+            copy.push(array.splice(i, 1)[0]);
+        }
+        return copy;
+    }
+
+    //前面随机抽数依次跟末尾的数交换，后面依次前移，即：第一次前n个数随机抽一个跟第n个交换，第二次前n-1个数跟第n-1个交换，依次类推。
+    function shuffle(array) {
+        var m = array.length,
+            t, i;
+        // 如果还剩有元素…
+        while (m) {
+            // 随机选取一个元素…
+            i = Math.floor(Math.random() * m--);
+            // 与当前元素进行交换
+            t = array[m];
+            array[m] = array[i];
+            array[i] = t;
+        }
+        return array;
+    }
+    ```
+    参考:
+
+      - [javascript常用数组算法总结](http://www.cnblogs.com/front-Thinking/p/4797440.html)
+
+36. `JavaScript`的垃圾回收机制
+
+    答案：1. 必要性
+
+    由于字符串、对象和数组没有固定大小，所有当他们的大小已知时，才能对他们进行动态的存储分配。JavaScript程序每次创建字符串、数组或对象时，解释器都必须分配内存来存储那个实体。只要像这样动态地分配了内存，最终都要释放这些内存以便他们能够被再用，否则，JavaScript的解释器将会消耗完系统中所有可用的内存，造成系统崩溃。
+    ```js
+    var a = "before";
+    var b = "override a";
+    var a = b; //重写a
+    ```
+    这段代码运行之后，“before”这个字符串失去了引用（之前是被a引用），系统检测到这个事实之后，就会释放该字符串的存储空间以便这些空间可以被再利用。
+
+    **两种垃圾回收机制**
+
+    1. 标记清除
+
+    这是javascript中最常用的垃圾回收方式。当变量进入执行环境是，就标记这个变量为“进入环境”。从逻辑上讲，永远不能释放进入环境的变量所占用的内存，因为只要执行流进入相应的环境，就可能会用到他们。当变量离开环境时，则将其标记为“离开环境”。
+    　　垃圾收集器在运行的时候会给存储在内存中的所有变量都加上标记。然后，它会去掉环境中的变量以及被环境中的变量引用的标记。而在此之后再被加上标记的变量将被视为准备删除的变量，原因是环境中的变量已经无法访问到这些变量了。最后。垃圾收集器完成内存清除工作，销毁那些带标记的值，并回收他们所占用的内存空间。
+
+    2. 引用计数
+
+    另一种不太常见的垃圾回收策略是引用计数。引用计数的含义是跟踪记录每个值被引用的次数。当声明了一个变量并将一个引用类型赋值给该变量时，则这个值的引用次数就是1。相反，如果包含对这个值引用的变量又取得了另外一个值，则这个值的引用次数就减1。当这个引用次数变成0时，则说明没有办法再访问这个值了，因而就可以将其所占的内存空间给收回来。这样，垃圾收集器下次再运行时，它就会释放那些引用次数为0的值所占的内存。存在循环引用，使得垃圾无法回收，导致内存泄漏的问题。(设为null)
+
+    参考:
+
+      - [JavaScript垃圾回收机制](http://www.cnblogs.com/hustskyking/archive/2013/04/27/garbage-collection.html)
+
+37. 常见的`JavaScript`设计模式
+
+    答案：设计模式（Design pattern）:
+    >是一套被反复使用，思想成熟，经过分类和无数实战设计经验的总结。使用设计模式是为了让系统代码可重用，可扩展，可解耦，更容易被人理解且能保证代码可靠性。设计模式使代码开发真正工程化；设计模式是软件工程的基石脉络，如同大厦的结构一样。只有夯实地基搭好结构，才能盖出坚壮的大楼。也是我们迈向高级开发人员必经的一步。
+
+    **观察者模式**，**发布订阅者模式**，单例模式，装饰者模式，工厂模式
+
+
+    单例模式：
+    >单例就是保证一个类只有一个实例，实现的方法一般是先判断实例存在与否，如果存在则直接返回，如果不存在就创建了再返回，这就确保了一个类只有一个实例对象。在JavaScript中，单例作为一个命名空间提供者，从全局命名空间里提供一个唯一的访问点来访问该对象。(比如说一座房子只有一扇门，有一扇门就不用再开门了，如果没有门则需要创建一个门。每个门都只属于一个户主（命名空间），门是户与户之间的唯一接口，你要来我家，只能从这个门进来。)
+
+    模式作用：
+    1. 模块间通信；
+    2. 系统中某个类的对象只能存在一个；
+    3. 保护自己的属性和方法(不受外面干扰)；
+    单例模式代码实战和总结
+    ```js
+    var single = (function() {
+        var unique;
+        function getInstance() {
+              if (unique === undefined) {
+                  unique = new Construct();
+              }
+              return unique;
+          }
+          function Construct() {
+              // ... 生成单例的构造函数的代码
+          }
+          return {
+              getInstance: getInstance
+          }
+      })();
+    ```
+    工厂（Factory）模式:
+    >工厂模式定义了一个用于创建对象的接口，这个接口决定了实例化哪一个类。该模式将其成员对象的实例化推迟到子类中进行。而子类可以重写接口方法以便创建的时候指定自己的对象类型（抽象工厂）。（简单工厂：能找到具体细节）；抽象工厂只留口，不做事，留给外界覆盖；
+    这个模式十分有用，尤其是创建对象的流程赋值的时候，比如依赖于很多设置文件等。并且，会经常在程序里看到工厂方法，用于让子类定义需要创建的对象类型。
+    **简单工厂模式**：使用一个类（通常为单体）来生成实例。
+    **复杂工厂模式**：使用子类来决定一个成员变量应该是哪个具体的类的实例。
+
+    模式作用：
+    1. 对象的构建十分复杂；
+    2. 需要依赖具体的环境创建不同实例；
+    3. 处理大量具有相同属性的小对象；
+    4. 动态实现 例如自行车的例子，创建一些用不同方式实现统一接口的对象，那么可以使用一个工厂方法或者简单工厂对象来简化实现过程。选择可以是明确进行的也可以是隐含的。
+
+    **工厂模式之利** 主要好处就是可以消除对象间的耦合，通过使用工程方法而不是new关键字。将所有实例化的代码集中在一个位子防止代码重复。
+
+    **工厂模式之弊** 大多数类最好使用new关键字和构造函数，可以让代码更加简单易读。而不必去查看工厂方法来知道。
+
+    ```js
+    //当需要添加新的类型的时候，不需要动 BicycleShop 只需修改工厂单体对象就可以。
+    var BicycleFactory = {
+        createBicycle : function( model ){
+            var bicycle;
+            switch( model ){
+                case "The Speedster":
+                    bicycle = new Speedster();
+                    break;
+                case "The Lowrider":
+                    bicycle = new Lowrider();
+                    break;
+                case "The Cruiser":
+                default:
+                    bicycle = new Cruiser();
+                    break;
+            }
+            return bycicle;
+        }
+    }
+    //简单工厂模式
+    var BicycleShop = function(){};
+
+    BicycleShop.prototype = {
+        sellBicycle : function( model ){
+            var bicycle = BicycleFactory.createBicycle(model);     
+            return bicycle;
+        }
+    }
+    //抽象工厂模式：不是另外使用一个对象或者类来创建实例（自行车），而是使用一个子类。
+    //给接口不做事
+    BicycleShop.prototype={
+        sellBicycle: function( model ){
+            var bicycle = this.createBicycle( model );
+            return bicycle;
+        },
+        createBicycle: function( model ){
+            throw new Error( " Unsupported " );
+        }
+    }
+    //不同厂商的shop实例拥有不同的生成几个型号自行车的方法。
+    var AcmeBicycleShop = function(){};
+    extend( AcmeBicycleShop , BicycleShop );
+    AcmeBicycleShop.prototype.createBicycle = function( model ){
+        var bicycle;
+        switch( model ){
+            case "The Speedster":
+                bicycle = new AcmeSpeedster();
+                break;
+            case "The Lowrider":
+                bicycle = new AcmeLowrider();
+                break;
+            case "The Cruiser":
+            default:
+                bicycle = new AcmeCruiser();
+                break;
+        }
+        return bicycle;
+    }
+
+    var GeneralBicycleShop = function(){};
+    extend( GeneralBicycleShop , BicycleShop );
+    GeneralBicycleShop.prototype.createBicycle = function( model ){
+       ...
+    }
+    ```
+    参考:
+
+      - [细谈JavaScript中的一些设计模式](https://segmentfault.com/a/1190000004568177)
+      - [常用的Javascript设计模式](http://blog.jobbole.com/29454/)
+
+38. 客户端如何与服务器时间同步？
+
+    答案：客户端的时间不对，以服务端的时间为准，同步时间。比如秒杀的时候，页面显示的倒计时，要以服务器时间为准。思路：简而言之就是发送一个ajax请求，然后获取对应的HTTP Header中的time，由于时延等问题造成时间在JS客户端获取后当前时间已经不再是服务器此时的时间，然后用本地的时间减去获取的服务器的时间，这应该就是时间偏移量。再新建一个时间，加上此偏移量应该就是此时此刻服务器的时间。代码如下：
+    ```js
+    var offset = 0;
+    function calcOffset() {
+        var xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+        xmlhttp.open("GET", "http://stackoverflow.com/", false);
+        xmlhttp.send();
+
+        var dateStr = xmlhttp.getResponseHeader('Date');
+        var serverTimeMillisGMT = Date.parse(new Date(Date.parse(dateStr)).toUTCString());
+        var localMillisUTC = Date.parse(new Date().toUTCString());
+        offset = serverTimeMillisGMT -  localMillisUTC;  
+    }
+    function getServerTime() {
+        var date = new Date();
+        date.setTime(date.getTime() + offset);
+        return date;
+    }
+    ```
+    或者是：
+    ```js
+    var start = (new Date()).getTime();
+
+    var serverTime;//服务器时间
+
+    $.ajax({
+      url:"XXXX",
+    success: function(data,statusText,res){
+            var delay = (new Date()).getTime() - start;
+            serverTime = new Date(res.getResponseHeader('Date')).getTime() + delay;
+            console.log(new Date(serverTime));//标准时间
+            console.log((new Date(serverTime)).toTimeString());//转换为时间字符串
+            console.log(serverTime);//服务器时间毫秒数
+        }
+    })
+    ```
+
+39. 什么是`JavaScript`中的类数组对象(`arguments`对象)？
+
+    答案：JavaScript中有一些看起来像却又不是数组的对象，唤作类数组。一个类数组对象：
+
+    * 具有：指向对象元素的数字索引下标以及 length 属性告诉我们对象的元素个数
+    * 不具有：诸如 push 、 forEach 以及 indexOf 等数组对象具有的方法
+    两个典型的类数组的例子是：DOM方法 document.getElementsByClassName() 的返回结果（实际上许多DOM方法的返回值都是类数组）以及特殊变量 arguments [1]。你可以通过以下方法确定函数参数的个数：arguments.length；也可以获取单个参数值，例如读取第一个参数：arguments[0]。如果这些对象想使用数组的方法，就必须要用某种方式“借用”。由于大部分的数组方法都是通用的，因此我们可以这样做。
+
+    类数组表现
+
+    所谓的通用方法就是不强制要求函数的调用对象 this 必须为数组，仅需要其拥有 length 属性和数字索引下标即可。 通常来讲，你可以用如下的方式在数组 arr 上调用方法 m ：
+
+    arr.m(arg0, arg1, ...)
+    所有的函数都拥有一个 call 方法来让我们用这样一种方式进行上述调用：
+
+    Array.prototype.m.call(arr, arg0, arg1, ...)
+    call 方法的第一个参数就是函数 m 的调用对象 this 的值（在这个例子里就是 arr）。 因为我们直接调用方法 m ，而非通过数组对象 arr ，因此我们可以为本方法更改任意的 this 值。
+
+    例如改为 arguments :
+
+    Array.prototype.m.call(arguments, arg0, arg1, ...)
+    例子
+
+    让我们来看一个具体的例子。 下面的 printArgs 列出了函数的全部参数值。
+
+    function printArgs() {
+        Array.prototype.forEach.call(arguments,
+            function (arg, i) {
+                console.log(i+'. '+arg);
+            });
+    }
+    我们“通用地”使用了方法 forEach。 printArgs 的运行结果如下：
+
+        > printArgs()
+        > printArgs('a')
+        0. a
+        > printArgs('a', 'b')
+        0. a
+        1. b
+    你甚至可以应用通用方法给普通的对象：
+
+        > var obj = {};
+        > Array.prototype.push.call(obj, 'a');
+        1
+        > obj
+        { '0': 'a', length: 1 }
+    在上述例子中，length 属性原本不存在并以0为初始值自动创建。
+
+    将类数组对象转化为数组
+
+    有时候处理类数组对象的最好方法是将其转化为数组。 这项工作也可以使用通用方法来完成：
+
+    Array.prototype.slice.call(arguments)
+    然后就可以直接使用数组方法啦。
+
+    arr.slice()
+
+40. 在浏览器地址栏按回车、F5、Ctrl+F5刷新网页的区别
+
     答案：
 
-35. 数组如何实现去重、求交集、求并集和洗牌(`shuffle`)？
-36. `JavaScript`的垃圾回收机制
-37. 常见的`JavaScript`设计模式
-38. 客户端如何与服务器时间同步？
-39. 什么是`JavaScript`中的类数组对象(`arguments`对象)？
-40. 在浏览器地址栏按回车、F5、Ctrl+F5刷新网页的区别
 41. 如何判断两个对象是否相等？
 42. 什么是`IIFE`(Immediately Invoked Function Expression，立即执行函数表达式)？有什么作用？
 43. 变量的`null`，`undefined`和`undeclared`的区别是什么？如何检测它们？
