@@ -1213,7 +1213,7 @@
     - [ES6中的新特性](http://www.html-js.com/article/The-new-characteristics-of-8-ES6-JavaScript-every-day-to-learn)
     - [ECMAScript 6 入门](http://es6.ruanyifeng.com/#docs/simd)
 
-30. 客户端存储及他们的异同(例如：Cookie, SessionStorage和localStorage、webstorge等)
+30. 客户端存储及他们的异同(例如：Cookie, SessionStorage和localStorage、webstorage等)
 
     答案：共同点：都是保存在浏览器端，且同源的。
 
@@ -1849,80 +1849,421 @@
 
 39. 什么是`JavaScript`中的类数组对象(`arguments`对象)？
 
-    答案：JavaScript中有一些看起来像却又不是数组的对象，唤作类数组。一个类数组对象：
+    答案：JavaScript中类数组和“数组”类似，不能直接使用数组方法，唤作类数组。一个类数组对象：
 
-    * 具有：指向对象元素的数字索引下标以及 length 属性告诉我们对象的元素个数
+    * 具有：拥有length属性，其它属性（索引）为非负整数(对象中的索引会被当做字符串来处理，这里你可以当做是个非负整数串来理解)；
     * 不具有：诸如 push 、 forEach 以及 indexOf 等数组对象具有的方法
-    两个典型的类数组的例子是：DOM方法 document.getElementsByClassName() 的返回结果（实际上许多DOM方法的返回值都是类数组）以及特殊变量 arguments [1]。你可以通过以下方法确定函数参数的个数：arguments.length；也可以获取单个参数值，例如读取第一个参数：arguments[0]。如果这些对象想使用数组的方法，就必须要用某种方式“借用”。由于大部分的数组方法都是通用的，因此我们可以这样做。
 
-    类数组表现
+    javascript中常见的类数组有arguments对象和DOM方法的返回结果。比如 document.getElementsByTagName()。你可以通过以下方法确定函数参数的个数：arguments.length；也可以获取单个参数值，例如读取第一个参数：arguments[0]。如果这些对象想使用数组的方法，就必须要用某种方式“借用”。由于大部分的数组方法都是通用的，因此我们可以这样做。
 
-    所谓的通用方法就是不强制要求函数的调用对象 this 必须为数组，仅需要其拥有 length 属性和数字索引下标即可。 通常来讲，你可以用如下的方式在数组 arr 上调用方法 m ：
-
-    arr.m(arg0, arg1, ...)
-    所有的函数都拥有一个 call 方法来让我们用这样一种方式进行上述调用：
-
-    Array.prototype.m.call(arr, arg0, arg1, ...)
-    call 方法的第一个参数就是函数 m 的调用对象 this 的值（在这个例子里就是 arr）。 因为我们直接调用方法 m ，而非通过数组对象 arr ，因此我们可以为本方法更改任意的 this 值。
-
-    例如改为 arguments :
-
-    Array.prototype.m.call(arguments, arg0, arg1, ...)
-    例子
-
-    让我们来看一个具体的例子。 下面的 printArgs 列出了函数的全部参数值。
-
-    function printArgs() {
-        Array.prototype.forEach.call(arguments,
-            function (arg, i) {
-                console.log(i+'. '+arg);
-            });
+    类数组判断
+    ```js
+    //选与《javascript权威指南》判断一个对象是否属于“类数组”
+    function isArrayLike(o){
+      if(o && // o is not null, undefined, etc.
+        typeof o ==="object"&& // o is an object
+        isFinite(o.length) &&// o.length is a finite number
+        o.length >=0 &&// o.length is non-negative
+        o.length ==Math.floor(o.length) &&// o.length is an integer
+        o.length <4294967296// o.length < 2^32
+      ){return true;}// Then o is array-like
+      else{
+        return false;// Otherwise it is not
+      }
     }
-    我们“通用地”使用了方法 forEach。 printArgs 的运行结果如下：
 
-        > printArgs()
-        > printArgs('a')
-        0. a
-        > printArgs('a', 'b')
-        0. a
-        1. b
-    你甚至可以应用通用方法给普通的对象：
+    ```
 
-        > var obj = {};
-        > Array.prototype.push.call(obj, 'a');
-        1
-        > obj
-        { '0': 'a', length: 1 }
-    在上述例子中，length 属性原本不存在并以0为初始值自动创建。
+    所谓的 **通用方法** 就是不强制要求函数的调用对象 this 必须为数组，仅需要其拥有 length 属性和数字索引下标即可。就可以像使用数组那样，使用类数组来用数组的方法。
+    ```js
+    var a = {'0':'a', '1':'b', '2':'c', length:3};  // An array-like object:a[1]与a["1"]是一样的，键存在强制转换
+    Array.prototype.join.call(a, '+');  // => 'a+b+c'
+    Array.prototype.slice.call(a, 0);   // => ['a','b','c']: true array copy
+    Array.prototype.map.call(a, function(x) {
+        return x.toUpperCase();
+    })// => ['A','B','C']:
+    ```
 
     将类数组对象转化为数组
 
-    有时候处理类数组对象的最好方法是将其转化为数组。 这项工作也可以使用通用方法来完成：
-
+    有时候处理类数组对象的最好方法是将其转化为数组。
+    ```js
     Array.prototype.slice.call(arguments)
+    ```
     然后就可以直接使用数组方法啦。
-
-    arr.slice()
+    ```js
+    var a = {'0':1,'1':2,'2':3,length:3};
+    var arr = Array.prototype.slice.call(a);//arr=[1,2,3]
+    ```
 
 40. 在浏览器地址栏按回车、F5、Ctrl+F5刷新网页的区别
 
-    答案：
+    答案：浏览器地址栏按回车:
+    * 首先判断，请求的URI在浏览器缓存中是否过期(cache-control/expires),如果没有过期，直接拿缓存中的资源。拦截请求，不向服务器发送。
+    * 如果已经过期，向服务器发送请求，客户端发HTTP请求时，使用If-Modified-Since标签，把上次服务器告诉它的文件最后修改时间返回到服务器端了。URI(URI:同一资源标识符 > URL:统一资源定位符)，如果在这个时间之后，到现在为止，该资源都没有被修改，服务器返回状态码304 Not Modified，没有发送页面的内容，浏览器收到之后，从缓存读出内容，如果资源被修改过，服务器返回的HTTP状态码是200，并发送页面的全部内容。服务器返回的HTTP头标签中有Last-Modified，告诉客户端页面的最后修改时间。
+
+    F5
+    请求头中多了一行Cache-Control: max-age=0，意思是说，缓存时间为0，我不管浏览器缓存中的文件过期没有，都去服务器询问一下，相当于上次HTTP响应的Expires暂时失效。
+
+    Ctrl+F5:强制刷新
+    If-Modified-Since没有了，Cache-Control换成了no-cache。意思是，不要缓存中的文件了，强制刷新，直接到服务器上重新下载，于是服务器的响应处理与首次请求这个URI一样，返回200 OK和新的内容。这种刷新，使用的网络流量是最大的，也是最耗时的。这就像你虽然发现了一盒牛奶，但是把它扔掉了，直接去买一盒新的。
+
+    **客户端存储与客户端缓存**
+    通过`chrome://cache/`可以查看客户端缓存（浏览器文件缓存），文件缓存主要用来减少网络请求，提高页面加载速度的。包括你看的视频啊各种资源。除非手动永久删除，不然过期也还是在。
+
+    客户端存储就是一种存储技术，用来存取用户上网过程中的一些信息数据，和减少网络请求，提高页面加载速度没关系，就是存取状态的，数据可以用JS操作。比如：cookie用来标识用户有没有登陆；用户没有发出去的微博，也可以说是页面的状态数据，存在localStorage中，下次打开微博还在。缓存数据(数据库) ！== 缓存
+
+    参考：
+
+      - [在浏览器地址栏按回车、F5、Ctrl+F5刷新网页的区别](http://blog.csdn.net/yui/article/details/6584401)
 
 41. 如何判断两个对象是否相等？
-42. 什么是`IIFE`(Immediately Invoked Function Expression，立即执行函数表达式)？有什么作用？
+
+    答案：JavaScript 在判断相等性的时候对原生类型和对象区别对待。如果是原生类型，比如说字符串和数字，那么 JavaScript 根据值来比较；如果是对象，那么要根据对象的引用来判断，也就是对象在内存中引用的地址。
+
+    所以在 JavaScript 代码中判定对象是否相等之前，必须明确我们需要判断是需要严格的内存引用地址相等还是两个对象的内容相等。有时候，我们仅仅需要判断两个对象的内容是否相等。我们知道，引用类型无法直接使用 == 或=== 取得期待结果。
+    ```js
+    function isEquivalent(a, b) {
+        // 获取对象属性的所有的键
+        var aProps = Object.getOwnPropertyNames(a);
+        var bProps = Object.getOwnPropertyNames(b);
+        // 如果键的数量不同，那么两个对象内容也不同
+        if (aProps.length != bProps.length) {
+            return false;
+        }
+        for (var i = 0, len = aProps.length; i < len; i++) {
+            var propName = aProps[i];
+
+            // 如果对应的值不同，那么对象内容也不同
+            if (a[propName] !== b[propName]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    // Outputs: true
+    console.log(isEquivalent(obj1, obj2));
+    ```
+    上面的代码我们可以看到，判断两个对象内容是否相同，我们需要遍历对象的所有属性，并依次判断每个键对应的值是否相同。但是这里的实现并不严谨，有很多情况还无法处理。比如说NaN和NaN默认是不相等的(`isNaN(a) && isNaN(b)`来处理)、一个对象属性的值是另外一个对象(因此需要一个迭代的compare函数进行比较)等。
+    所以在我们使用的时候，可以直接使用 Lo-Dash 或者 Underscore 这样经过亿万产品检验的类库来做这件事，不用重新发明轮子。他们实现的 API 是一样的 isEqual(...)。
+    ```js
+    // Outputs: true
+    console.log(_.isEqual(obj1, obj2));
+    ```
+    参考：
+
+      - [判定 JavaScript 对象是否相等](http://codethoughts.info/javascript/2015/07/12/javascript-object-equality/)
+
+42. 什么是`IIFE`(Immediately Invoked Function Expression，立即执行函数表达式)？有什么作用？解释下为什么接下来这段代码不是 IIFE(立即调用的函数表达式)：function foo(){ }();要做哪些改动使它变成 IIFE?
+
+    答案：立即执行表达式，是JS中一种可以立即执行的函数，其本质就是个函数表达式。一对圆括号“()”是一种运算符，跟在函数名之后，表示调用该函数。有很多种写法，常见如下：
+    ```js
+    // 在匿名函数外面套一个()，然后再用()来调用（方式B）
+    (function(){ console.log("test");})(); // test
+    // 在方式A的外层套一个()（方式C）
+    (function(){ console.log("test");}()); // test
+    ```
+    JavaScript解释器会在默认的情况下把遇到的function关键字当作是函数声明语句(statement)来进行解释的。解释器把()中的内容当作表达式（expression）而不是语句(statement)来执行。所以重点是JavaScript解释器以「函数表达式」而不是「函数声明」来处理匿名函数的立即执行就可以了.
+
+    这里只是声明一个叫foo的function，直接用()执行这样是不成功的，想要变成IIFE就要把声明变成表达式，就可以立即执行了，可以这样(function foo(){})()或者(function foo(){}())，这就是用括号把定义强转成表达式，当然还有其他方法，关键就是声明不可以执行，表达式才可以执行。
+
+    通常情况下，只对匿名函数使用这种“立即执行的函数表达式”。它的目的有:
+    * 一是不必为函数命名，避免了污染全局变量；
+    ```js
+    // 写法一
+    var tmp = newData;
+    processData(tmp);
+    storeData(tmp);
+
+    // 写法二完全避免了污染全局变量
+    (function (){
+      var tmp = newData;
+      processData(tmp);
+      storeData(tmp);
+    }());
+    ```
+    * 二是IIFE内部形成了一个单独的作用域，可以封装一些外部无法读取的私有变量。解决闭包冲突
+    * 模拟单例
+    ```js
+    // 创建一个立即调用的匿名函数表达式
+    // return一个变量，其中这个变量里包含你要暴露的东西
+    // 返回的这个变量将赋值给counter，而不是外面声明的function自身
+
+    var counter = (function () {
+        var i = 0;
+
+        return {
+            get: function () {
+                return i;
+            },
+            set: function (val) {
+                i = val;
+            },
+            increment: function () {
+                return ++i;
+            }
+        };
+    } ());
+
+    // counter是一个带有多个属性的对象，上面的代码对于属性的体现其实是方法
+
+    counter.get(); // 0
+    counter.set(3);
+    counter.increment(); // 4
+    counter.increment(); // 5
+
+    counter.i; // undefined 因为i不是返回对象的属性
+    i; // 引用错误: i 没有定义（因为i只存在于闭包）
+    ```
+
+    参考：
+
+      - [JavaScript中的立即执行函数表达式](https://segmentfault.com/a/1190000000327820)
+
 43. 变量的`null`，`undefined`和`undeclared`的区别是什么？如何检测它们？
+
+    答案：undefined和null是基本数据类型中的两种。undeclared不是一种数据类型，也不是一个值，只是一种说法，叫未声明的意思。
+
+    在JavaScript中，将一个变量赋值为undefined或null，老实说，几乎没区别。undefined和null在if语句中，都会被自动转为false，相等运算符甚至直接报告两者相等undefined==null。
+
+    undefined和null的含义与用法都差不多，只有一些细微的差别。
+
+    null是一个表示"无"的对象，转为数值时为0；undefined是一个表示"无"的原始值，转为数值时为NaN。
+
+    null表示"没有对象"，即该处不应该有值。
+
+    undefined表示"缺少值"，就是此处应该有一个值，但是还没有定义。典型用法是：
+
+    （1）变量被声明了，但没有赋值时，就等于undefined。
+
+    （2) 调用函数时，一个并不存在的对象属性，该参数值等于undefined。
+
+    （3）对象没有赋值的属性，该属性的值为undefined。
+
+    （4）函数没有返回值时，默认返回undefined。
+
+    检测：
+    使用typeof：typeof null//"object";typeof undefined//"undefined"；typeof undeclared//"undefined"
+    ```js
+    var exp = undefined;
+    if (typeof(exp) == "undefined")
+    {
+        alert("undefined");
+    }
+    var exp = null;
+    if (!exp && typeof(exp)!="undefined" && exp!=0)
+    {
+        alert("is null");
+    }　//null、undefined、0
+
+    try{p//undeclared
+    }catch(e){
+      console.log(e)//p is not defined.
+    }
+    ```
+
+
 44. 原生对象(native object)和宿主对象(host object)有什么区别？
-45. 浏览器多个标签间如何通信？
-46. `attribute`和 `property`的却别是什么？
+
+    答案：![JS对象系统](./images/JS对象系统.png)
+
+    1.native object
+    >ECMA-262 把原生对象（native object）定义为“独立于宿主环境的 ECMAScript 实现提供的对象”。
+
+    它是语言本身实现和提供的对象，和语言运行在哪个环境无关。也就是说，不管你的JS代码在哪里跑，你都可以new出 native object 并使用它。包括：Object、Array、Date、RegExp、Function、Error(Error、EvalError、RangeError、ReferenceError、SyntaxError、TypeError、URIError 等错误类型的对象)、包装类型(String Number Boolean)、内置对象(Global和Math这两个对象在脚本程序初始化时被创建，不必实例化这两个对象)。
+
+    2.host object
+
+    宿主对象就是执行JS脚本的宿主环境提供的对象。对于浏览器环境而言，我们显示一个页面需要HTML，所以浏览器实现了DOM对象 —— window.document；我们还需要浏览器本身给我们提供一些必要的东西，比如URL地址相关的location、设备屏幕相关的screen等，所以浏览器又为我们提供了BOM对象 —— window。这些对象，就是host object。(DOM对象即是window.document，而window.document就是DOM的根节点，从这点来讲，我们可以理解为BOM包含了DOM 。)
+
+    参考：
+
+    - [浅析JavaScript的对象系统](http://www.jianshu.com/p/d0930dc0f95d)
+
+45. 浏览器多个标签间如何通信(阿里)？
+
+    答案：（假设有个人访问了你的网站。他依次登录，打开第二个标签页并在那个标签页里选择了注销。希望第一个页面可以判断用户是否已注销，并对页面做相应的改变。）
+
+    1. localStorage
+
+    localStorage 会触发一个事件。不论某个标签页在何时添加、修改或删除了 localStorage，都会对其余的所有标签触发事件，所有其它的标签页都能通过 window 对象监听到这个事件。这就意味着我们只要为 localStorage 赋值，通过监听事件，控制它的值，就能够跨浏览器标签通信了。使用`localStorage.setItem(key,value);`添加内容，使用storage事件监听添加、修改、删除的动作。
+    注意quirks：Safari 在无痕模式下设置localstorge值时会抛出 QuotaExceededError 的异常。
+    ![localStorage_event对象属性](./images/localStorage_event对象属性.png)
+    ```js
+    window.addEventListener('storage', function (event) {
+      console.log(event.key, event.newValue);
+    });
+    ```
+    例子：用户打开了两个标签页，在其中一个里执行了注销操作后返回另一个时，页面将重新载入，（如果可以的话）服务器端逻辑将把用户重定向到其它位置。这个检查只在当前标签页获得焦点时执行，这是因为用户可能在注销后立刻重新登录，这种情况下不应将其余标签页的状态全部设为已注销。
+    ```js
+    var loggedOn;
+    // call when logged-in user changes or logs out
+    logonChanged();
+    window.addEventListener('storage', updateLogon);
+    window.addEventListener('focus', checkLogon);
+    function getUsernameOrNull () {
+      // return whether the user is logged on
+    }
+    function logonChanged () {
+      var uname = getUsernameOrNull();
+      loggedOn = uname;
+      localStorage.setItem('logged-on', uname);
+    }
+    function updateLogon (event) {
+      if (event.key === 'logged-on') {
+        loggedOn = event.newValue;
+      }
+    }
+    function checkLogon () {
+      var uname = getUsernameOrNull();
+      if (uname !== loggedOn) {
+        location.reload();
+      }
+    }
+    ```
+    2. 使用cookie+setInterval
+
+    来周期性地通过 setInterval 检查用户是否登录。但这个方案并不好，因为这样会把许多 CPU 周期耗费在检查一个可能自始至终都不会满足的条件上。服务器端事件或者 WebSockets 。
+    ```js
+    //获取Cookie天的内容  
+    function getKey(key) {  
+        return JSON.parse("{\""+ document.cookie.replace(/;\s+/gim,"\",\"").replace(/=/gim, "\":\"") +"\"}")[key];  
+    }
+     //每隔1秒获取Cookie的内容  
+    setInterval(function(){  
+      console.log(getKey("name"));  
+     },1000);  
+    ```
+
+    总结：
+
+    WebSocket、SharedWorker
+    也可以调用localstorge、cookies等本地存储方式。
+
+    参考：
+
+    - [浏览器跨标签通讯](http://web.jobbole.com/82225/)
+
+46. `attribute`和 `property`的区别是什么(核心)？
+
+    答案：property（属性）是DOM对象自身就拥有的属性，而attribute（特性）是我们通过设置HTML标签而给之赋予的特性，attribute和property的同名属性/特性之间会产生一些特殊的数据联系，而这些联系会针对不同的属性/特性有不同的区别。
+    ![property和attribute](property和attribute.png)
+    ```js
+    //有“id”和“value”两个基本的属性，但没有“sth”这个自定义的属性
+    <input id="in_1" value="1" sth="whatever">
+    console.log(in1.sth);             // property -->undefined
+    console.log(in1.attributes.value);  // attributes
+    //'sth="whatever" 注意，打印attribute属性不会直接得到对象的值，而是获取一个包含属性名和值的字符串.
+    ```
+    创建
+
+    * DOM对象初始化时会在创建默认的基本property；
+    * 只有在HTML标签中定义的attribute才会被保存在attributes属性中；
+    * attribute会初始化property中的同名属性，但自定义的attribute不会出现在property中；
+    * attribute的值都是字符串；
+
+    数据绑定
+
+    * attributes的数据会同步到property上，然而property的更改不会改变attribute；
+    * 对于value，class这样的属性/特性，数据绑定的方向是单向的，attribute->property；
+    * 对于id而言，数据绑定是双向的，attribute<=>property；
+    * 对于disabled而言，property上的disabled为false时，attribute上的disabled必定会并存在，此时数据绑定可以认为是双向的；
+
+    使用
+
+    * 可以使用DOM的setAttribute方法来同时更改attribute；
+    * 直接访问attributes上的值会得到一个Attr对象，而通过getAttribute方法访问则会直接得到attribute的值；
+    * 大多数情况（除非有浏览器兼容性问题），jQuery.attr是通过setAttribute实现，而jQuery.prop则会直接访问DOM对象的property；
+
+    参考：
+
+    - [DOM 中 Property 和 Attribute 的区别](http://www.cnblogs.com/elcarim5efil/p/4698980.html)
+
 47. `document load event` 和 `document DOMContentLoaded event`之间的区别是什么？
+
+    答案：他们的区别是，触发的时机不一样，先触发DOMContentLoaded事件，后触发load事件。load事件：页面资源全部载入（JS，CSS，图片等全部加载完）触发.DOMContentLoaded事件:当DOM加载完成触发，此时引用的资源未必已加载完成.
+
+    DOM文档加载的步骤为
+
+    1. 解析HTML结构。
+    2. 加载外部脚本。(放最后，或者设置 async、defer)
+    3. 解析并执行脚本代码。
+    4. DOM树构建完成。//DOMContentLoaded
+    5. 加载图片等外部文件、样式表文件。
+    6. 页面加载完毕。//load
+    在第4步，会触发DOMContentLoaded事件。在第6步，触发load事件。
+    ```js
+    //用原生js可以这么写
+    // 不兼容老的浏览器，兼容写法见[jQuery中ready与load事件](http://www.imooc.com/code/3253)，或用jQuery
+    document.addEventListener("DOMContentLoaded", function() {
+       // ...代码...
+    }, false);
+
+    window.addEventListener("load", function() {
+        // ...代码...
+    }, false);
+
+    //用jQuery这么写
+    // DOMContentLoaded
+    $(document).ready(function() {
+        // ...代码...
+    });
+    //load
+    $(document).load(function() {
+        // ...代码...
+    });
+    ```
+    参考：
+
+    - [DOMContentLoaded](https://developer.mozilla.org/zh-CN/docs/Web/Events/DOMContentLoaded)
+    - [事件DOMContentLoaded和load的区别](http://www.jianshu.com/p/d851db5f2f30)
+
 48. `== `与` ===`的区别。
+
+    答案：前者隐式类型转换，后者严格对比。简单来说就是使用“==”时，如果两边类型不同，js引擎会把它们转换成相同类型然后在进行比较，而“===”则不会进行类型转换，因此当两边不是属于同一个类型，肯定不相等。
+
+    1、对于string,number等基础类型，==和===是有区别的
+
+        1）不同类型间比较，==之比较“转化成同一类型后的值”看“值”是否相等，===如果类型不同，其结果就是不等
+        2）同类型比较，直接进行“值”比较，两者结果一样
+
+    2、对于Array,Object等高级类型，==和===是没有区别的
+
+        进行“指针地址”比较
+    3、基础类型与高级类型，==和===是有区别的
+        1）对于==，将高级转化为基础类型，进行“值”比较
+        2）因为类型不同，===结果为false
+
+    === 判断规则
+
+    * 如果类型不同，就[不相等]
+    * 如果两个都是数值，并且是同一个值，那么[相等]；(！例外)的是，如果其中至少一个是NaN，那么[不相等]。（判断一个值是否是NaN，只能用isNaN()来判断）
+    * 如果两个都是字符串，每个位置的字符都一样，那么[相等]；否则[不相等]。
+    * 如果两个值都是true，或者都是false，那么[相等]。
+    * 如果两个值都引用同一个对象或函数，那么[相等]；否则[不相等]。
+    * 如果两个值都是null，或者都是undefined，那么[相等]。
+    == 判断规则：
+
+    * 如果两个值类型相同，进行 === 比较。
+    * 如果两个值类型不同，他们可能相等。根据下面规则进行类型转换再比较：
+    * 如果一个是null、一个是undefined，那么[相等]。
+    * 如果一个是字符串，一个是数值，把字符串转换成数值再进行比较。
+    * 如果任一值是 true，把它转换成 1 再比较；如果任一值是 false，把它转换成 0 再比较。
+    * 如果一个是对象，另一个是数值或字符串，把对象转换成基础类型的值再比较。对象转换成基础类型，利用它的toString或者valueOf方法。js核心内置类，会尝试valueOf先于toString；例外的是Date，Date利用的是toString转换。
+
+    参考：
+
+      - [ js ==与===区别](http://blog.csdn.net/wxdzxl/article/details/8502119)
+
+
 49. 解释`JavaScript`异步实现的原理。
 50. `escape()`, `decodeURIComponent()`, `decodeURI()`之间的区别是什么？
 51. NodeJS如何利用CPU的多核，增强性能？
 52. `ExpressJS `中间件原理。
 53. script的三种加载方式。
 54. js中switch语句中，用来判断的表达式可以是任意类型，而不仅限与整型。js中函数的参数传递方式都是按值传递，没有按引用传递的参数。但js中有保存引用的对象，比如数组。
-变量作用域：值一个变量在程序中的那些地方可以被访问。js中的变量作用域被定义为函数作用域。这是值变量的值在定义该变量的函数内是可见的，并且定义在该函数内的嵌套函数中也可以访问该变量。在主程序中，如果在函数外定义一个变量，那么这个变量拥有全局作用域，这是值可以在包括函数体内的程序的任何部分访问该变量。递归并不是异步回调，还是同步执行。                                                                                  
+变量作用域：值一个变量在程序中的那些地方可以被访问。js中的变量作用域被定义为函数作用域。这是值变量的值在定义该变量的函数内是可见的，并且定义在该函数内的嵌套函数中也可以访问该变量。在主程序中，如果在函数外定义一个变量，那么这个变量拥有全局作用域，这是值可以在包括函数体内的程序的任何部分访问该变量。递归并不是异步回调，还是同步执行。
+typeof和instanceof                                                                                  
 ### CSS
 1. 圣杯布局的原理和实现。
 2. 盒子模型。
