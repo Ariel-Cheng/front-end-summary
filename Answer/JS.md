@@ -2251,15 +2251,307 @@
 
       - [ js ==与===区别](http://blog.csdn.net/wxdzxl/article/details/8502119)
 
-
 49. 解释`JavaScript`异步实现的原理。
+
+    答案：笼统地说，异步在javascript就是延时执行。严格来说，javascript中的异步编程能力都是由BOM与DOM提供的，如setTimeout，XMLHttpRequest，还有DOM的事件机制，还有HTML5新增加的webwork, postMessage，等等很多。这些东西都有一个共同的特点，就是拥有一个回调函数，实现控制反转。回调函数的存在打断了原来的执行流程，让它们自行在适当的时机出现并执行。
+
+    Javascript语言的执行环境是"单线程"（single thread）就是指一次只能完成一件任务。如果有多个任务，就必须排队，前面一个任务完成，再执行后面一个任务，以此类推。这种模式的好处是实现起来比较简单，执行环境相对单纯；坏处是只要有一个任务耗时很长，后面的任务都必须排队等着，会拖延整个程序的执行。常见的浏览器无响应（假死），往往就是因为某一段Javascript代码长时间运行（比如死循环），导致整个页面卡在这个地方，其他任务无法执行。为了解决这个问题，Javascript语言将任务的执行模式分成两种：同步（Synchronous）和异步（Asynchronous）。在同步编程，代码基本上自上向下执行，在异步编程，一些代码就要写到回调函数中，如果代码之间存在依赖，回调函数套回调函数的情况也不少见，这种套嵌结构对以后的维护来说简直是地狱。还有一种我们不得不面对的情况，try...catch无法捕捉几毫秒之后发生的异常。另外，除了setTimeout外，异步编程基本上由事件机制承担的，它们的回调函数什么时候发生基本上都是未知数，可能由于后台发生系统级错误，无法再发出响应，或者，系统忙碌，一时半刻响应不过来，这两种情况我们也必需提供一个策略，中断这操作。以下有4种“异步模式”的编程方法，大都采用setTimeout、事件机制。
+
+    1. 回调函数
+    ```js
+    function f1(callback){
+　　　　setTimeout(function () {
+　　　　　　// f1的任务代码
+　　　　　　callback();
+　　　　}, 1000);
+　　}
+    f1(f2);
+    ```
+    回调函数的优点是简单、容易理解和部署，缺点是不利于代码的阅读和维护，各个部分之间高度耦合（Coupling），流程会很混乱，而且每个任务只能指定一个回调函数。
+    2. 事件监听
+    ```js
+    //jQuery的写法 为f1绑定一个事件,当f1发生done事件，就执行f2,
+    //f1.trigger('done')表示，执行完成后，立即触发done事件，从而开始执行f2。
+    f1.on('done', f2);
+    function f1(){
+　　　　setTimeout(function () {
+　　　　　　// f1的任务代码
+　　　　　　f1.trigger('done');
+　　　　}, 1000);
+　　}
+    ```
+    采用事件驱动模式。任务的执行不取决于代码的顺序，而取决于某个事件是否发生。优点是比较容易理解，可以绑定多个事件，每个事件可以指定多个回调函数，而且可以"去耦合"（Decoupling），有利于实现模块化。缺点是整个程序都要变成事件驱动型，运行流程会变得很不清晰。
+    3. 发布/订阅
+    ```js
+    //f2向"信号中心"jQuery订阅"done"信号。
+    jQuery.subscribe("done", f2);
+    //f1执行完成后，向"信号中心"jQuery发布"done"信号，从而引发f2的执行。
+    function f1(){
+  　　　　setTimeout(function () {
+  　　　　　　// f1的任务代码
+  　　　　　　jQuery.publish("done");
+  　　　　}, 1000);
+  　　}
+    ```
+    我们假定，存在一个"信号中心"，某个任务执行完成，就向信号中心"发布"（publish）一个信号，其他任务可以向信号中心"订阅"（subscribe）这个信号，从而知道什么时候自己可以开始执行。这就叫做"发布/订阅模式"（publish-subscribe pattern），又称"观察者模式"（observer pattern）。这种方法的性质与"事件监听"类似，但是明显优于后者。因为我们可以通过查看"消息中心"，了解存在多少信号、每个信号有多少订阅者，从而监控程序的运行。
+    4. Promises对象
+    ```js
+  　f1().then(f2);
+    //f1要进行如下改写,这里是jQuery的实现
+    function f1(){
+  　　　　var dfd = $.Deferred();
+  　　　　setTimeout(function () {
+  　　　　　　// f1的任务代码
+  　　　　　　dfd.resolve();
+  　　　　}, 500);
+  　　　　return dfd.promise;
+  　　}
+    ```
+    Promises对象是CommonJS工作组提出的一种规范，目的是为异步编程提供统一接口。简单说，它的思想是，每一个异步任务返回一个Promise对象，该对象有一个then方法，允许指定回调函数。优点在于，回调函数变成了链式写法，程序的流程可以看得很清楚，而且有一整套的配套方法，可以实现许多强大的功能。比如，指定多个回调函数，再比如，指定发生错误时的回调函数。而且，它还有一个前面三种方法都没有的好处：如果一个任务已经完成，再添加回调函数，该回调函数会立即执行。所以，你不用担心是否错过了某个事件或信号。这种方法的缺点就是编写和理解，都相对比较难。
+    5. Generator 对象
+
+    异步函数中的错误处理
+
+    ```js
+    <script type="text/javascript">
+        throw new Error("error");
+        console.log("show me"); // 并没有打印出来
+    </script>
+    <script type="text/javascript">
+        console.log("show me"); // 打印出来了
+    </script>
+    ```
+    throw new Error 的作用范围就是阻断一个 script 标签内的程序运行，但是不会影响下面的 script.一个 Error 会影响全局的函数执行。JS 中的 try..catch 机制并不能拿到 setTimeout 函数中出现的错误。庆幸的是 window 全局对象上有一个便利的函数，window.error，我们可以利用他捕捉到所有的错误，并作出相应的处理。window.onerror 算是一种特别暴力的容错手段，try..catch 也是如此，他们底层的实现就是利用 C/C++ 中的 goto 语句实现，一旦发现错误，不管目前的堆栈有多深，不管代码运行到了何处，直接跑到 顶层 或者 try..catch 捕获的那一层，这种一脚踢开错误的处理方式并不是很好，我觉得。
+
+    *有空了解：JavaScript 多线程技术介绍sharedWorker*
+
+    参考：
+
+    - [ Javascript异步编程的4种方法](http://www.ruanyifeng.com/blog/2012/12/asynchronous%EF%BC%BFjavascript.html)
+    - [javascript 异步编程](http://www.cnblogs.com/rubylouvre/archive/2011/03/14/1982699.html)
+
 50. `escape()`, `decodeURIComponent()`, `decodeURI()`之间的区别是什么？
+
+    答案：JavaScript中有三个可以对字符串编码的函数，分别是： escape,encodeURI,encodeURIComponent，相应3个解码函数：unescape,decodeURI,decodeURIComponent 。
+
+    1. escape()函数:可对字符串进行编码，这样就可以在所有的计算机上读取该字符串。语法:escape(string)(string  必需。要被转义或编码的字符串)。返回已编码的 string 的副本。其中某些字符被替换成了十六进制的转义序列。
+
+    *说明:* 该方法不会对 ASCII 字母和数字进行编码，也不会对下面这些 ASCII 标点符号进行编码： – _ . ! ~ * ‘ ( ) 。其他所有的字符都会被转义序列替换。不编码字符有69个：(`*，+，-，.，/，@，_，0-9，a-z，A-Z`)
+
+    2. encodeURI()函数:可把字符串作为 URI 进行编码。语法：encodeURI(URIstring)(URIstring  必需。一个字符串，含有 URI 或其他要编码的文本)。返回URIstring 的副本，其中的某些字符将被十六进制的转义序列进行替换。
+
+    *说明:* 该方法的目的是对 URI 进行完整的编码，因此对以下在 URI 中具有特殊含义的 ASCII 标点符号，encodeURI() 函数是不会进行转义的：;/?:@&=+$,#不编码字符有82个：`!，#，$，&，'，(，)，*，+，,，-，.，/，:，;，=，?，@，_，~，0-9，a-z，A-Z`。
+
+    3. encodeURIComponent() 函数:可把字符串作为 URI 组件进行编码。语法：encodeURIComponent(URIstring)(URIstring  必需。一个字符串，含有 URI 组件或其他要编码的文本。)。URIstring 的副本，其中的某些字符将被十六进制的转义序列进行替换。
+
+    *说明:* encodeURIComponent() 函数 与 encodeURI() 函数的区别之处，前者假定它的参数是 URI 的一部分（比如协议、主机名、路径或查询字符串）。因此 encodeURIComponent() 函数将转义用于分隔 URI 各个部分的标点符号。encodeURIComponent不编码字符有71个：`!， '，(，)，*，-，.，_，~，0-9，a-z，A-Z`
+
+    4. unescape 方法:从用 escape 方法编码的 String 对象中返回已解码的字符串,注意 unescape 方法不应用于解码“统一资源标识符”(URI)。请改用 decodeURI 和 decodeURIComponent 方法。
+
+    5. decodeURI 方法：返回一个已编码的统一资源标识符 (URI) 的非编码形式。使用 decodeURI 方法代替已经过时的 unescape 方法。decodeURI 方法返回一个字符串值。如果 URIString 无效，将发生 URIError。
+
+    6. decodeURIComponent 方法：返回统一资源标识符 (URI) 的一个已编码组件的非编码形式。
+
+    **总结：** escape()除了 ASCII 字母、数字和特定的符号外，对传进来的字符串全部进行转义编码，因此如果想对URL编码，最好不要使用此方法。而encodeURI() 用于编码整个URI,因为URI中的合法字符都不会被编码转换。encodeURIComponent方法在编码单个URIComponent（指请求参数）应当是最常用的，将中文、韩文等特殊字符转换成utf-8格式的url编码，所以如果给后台传递参数需要使用encodeURIComponent时需要后台解码对utf-8支持（form中的编码方式和当前页面编码方式相同），而不会影响整个URL。
+
+    escape方法并不编码字符+。而我们知道，在用户提交的表单字段中，如果有空格，则会被转化为+字符，而服务器解析的时候则会认为+号代表空格。由于这个缺陷，escape方法并不能正确地处理所有的非ASCII字符，你应当尽量避免使用escape方法，取而代之，你最好选择encodeURIComponent()方法。
+    escape()不编码的字符：`@*/+`
+    相对于使用escape方法，使用encodeURI方法会显得更专业一些。当你需要编码一整个URI的时候，你可以使用此方法，因为URI中的合法字符都不会被编码转换。需要注意到是字符’也是URI中的合法字符，所以也不会被编码转换。
+    encodeURI() 不编码的字符：` ~!@#$&*()=:/,;?+''`
+    encodeURIComponent方法在编码单个URIComponent（指请求参数）应当是最常用的。需要注意到是字符’也是URI中的合法字符，所以也不会被编码转换。
+    encodeURIComponent()不编码的字符：` ~!*()''`
+    传递参数时需要使用encodeURIComponent，这样组合的url才不会被#等特殊字符截断。
+
+    进行url跳转时可以整体使用encodeURI
+    js使用数据时可以使用escape
+    escape对0-255以外的unicode值进行编码时输出%u****格式，其它情况下escape，encodeURI，encodeURIComponent编码结果相同。
+
 51. NodeJS如何利用CPU的多核，增强性能？
+
+    答案：Node.js 适合以下场景:
+
+    * 实时性应用，比如在线多人协作工具，网页聊天应用等。
+    * 以 I/O 为主的高并发应用，比如为客户端提供 API，读取数据库。
+    * 流式应用，比如客户端经常上传文件。
+    * 前后端分离。
+    但Node.js 也有它的局限性，它并不适合 CPU 密集型的任务，比如人工智能方面的计算，视频、图片的处理等。在利用 Node.js 编程时，任何耗时操作一定要使用异步来完成，避免阻塞当前函数。因为你在为客户端提供服务，而所有代码总是单线程、顺序执行。异步是为了优化体验，避免卡顿。而真正节省处理时间，利用 CPU 多核性能，还是要靠多线程并行处理。实际上 Node.js 在底层维护了一个线程池。不存在真正的异步文件 I/O，通常是通过线程池来模拟。线程池中默认有四个线程，用来进行文件 I/O。需要注意的是，我们无法直接操作底层的线程池，实际上也不需要关心它们的存在。线程池的作用仅仅是完成 I/O 操作，而非用来执行 CPU 密集型的操作，比如图像、视频处理，大规模计算等。如果有少量 CPU 密集型的任务需要处理，我们可以 **启动多个 Node.js 进程并利用 IPC 机制进行进程间通讯，或者调用外部的 C++/Java 程序**。如果有大量 CPU 密集型任务，那只能说明选择 Node.js 是一个错误的决定。Node.js 采用 I/O 多路复用技术，利用单线程处理网络 I/O，利用线程池和少量线程模拟异步文件 I/O。**可以启动多个 Node.js 进程，进程之间不需要通讯，它们各自监听一个端口，同时在最外层利用 Nginx 做负载均衡。多个 Node.js 进程可以充分发挥多核 CPU 的处理能力，也具有很强大的拓展能力**。由于 Node.js 是事件驱动的，每个事件的回调函数会被注册到 Event Loop 的不同阶段。Event Loop 不断的循环，每一个阶段内都会同步执行所有在该阶段注册的回调函数。这也正是为什么不要在回调函数中调用阻塞方法，总是用异步的思想来进行耗时操作。一个耗时太久的回调函数可能会让 Event Loop 卡在某个阶段很久，新来的网络请求就无法被及时响应。**对于高并发的长连接，事件驱动模型比线程轻量得多，多个 Node.js 进程配合负载均衡可以方便的进行拓展。因此 Node.js 非常适合为 I/O 密集型应用提供服务。但这种方式的缺陷就是不擅长处理 CPU 密集型任务**。
+
+    创建子进程、进程间通信的IPC通道实现、句柄在进程间的发送和使用原理、端口共用等细节。通过这些基础技术，在多核的CPU服务器上，让Node进程能够充分利用资源。
+
+    参考：
+
+    - [为什么要使用 Node.js](https://gold.xitu.io/entry/57b54f391532bc0063ebff4c/view)
+    - [NodeJS充分利用多核CPU以及它的稳定性](https://segmentfault.com/a/1190000007343993)
+
 52. `ExpressJS `中间件原理。
+
+    Connect是一个node中间件（middleware）框架。如果把一个http处理过程比作是污水处理，中间件就像是一层层的过滤网。每个中间件在http处理过程中通过改写request或（和）response的数据、状态，实现了特定的功能。这些功能非常广泛。每个中间件都是一个handler.依次传入request, response, next三个参数。一个最基本的中间件结构如下:
+    ```js
+    function myFunMiddleware(request, response, next) {
+        // 对request和response作出相应操作
+        // 操作完毕后返回next()即可转入下個中间件
+        next();
+    }
+    ```
+    当我们啓动一个服务器，函数开始从顶部一直往下执行。如果你想输出函数的执行过程，添加一下代码:
+    ```js
+    var connect = require("connect");
+    var http = require("http");
+    var app = connect();
+    //任何时候我们向服务器发起请求，request方法将会被调用
+    // log中间件
+    app.use(function(request, response, next) {
+        console.log("In comes a " + request.method + " to " + request.url);
+        next();
+    });
+
+    // 返回"hello world"
+    app.use(function(request, response, next) {
+        response.writeHead(200, { "Content-Type": "text/plain" });
+        response.end("Hello World!\n");
+    });
+
+    http.createServer(app).listen(1337);
+    ```
+    正如Connect拓展了Node, Express拓展Connect.代码的开始部分看起来和在Connect中非常类似：
+    ```js
+    var express = require("express");
+    var http = require("http");
+    var app = express();
+    http.createServer(app).listen(1337);
+    ```
+    Connect为我们提供了中间件，Express则为我们提供了另外三个优秀的特性： 路由分发，请求处理，视图渲染。
+
+    **路由**
+
+    app.get 就是Express提供的路由系统。也可以是 app.post 来处理POST请求，或者是PUT和任何的HTTP请求方式。第一个参数是路径，例如 /about 或者 /。第二个参数类似我们之前所见过的请求handler。这些请求handler和中间件一样，唯一的区别是这些回调函数会调用 next('route') 从而能够继续执行剩下的路由回调函数。这种机制
+    ```js
+    //路由
+    var express = require("express");
+    var http = require("http");
+    var app = express();
+
+    app.all("*", function(request, response, next) {
+        response.writeHead(404, { "Content-Type": "text/plain" });
+        next();
+    });
+
+    app.get("/", function(request, response) {
+        response.end("Welcome to the homepage!");
+    });
+
+    app.get("/about", function(request, response) {
+        response.end("Welcome to the about page!");
+    });
+
+    app.get("*", function(request, response) {
+        response.end("404!");
+    });
+
+    http.createServer(app).listen(1337);
+    ```
+
+    **请求处理 request handling**
+
+    Express将你传入请求的handler传入request和response对象中。原先该有的还在，但是却加入了更多新的特性。以上代码既不属于原生Node代码也不是来自与Connect,而是Express中自身添加的。
+    ```js
+    response.redirect("/hello/anime");
+    response.redirect("http://xvfeng.me");
+    response.redirect(301, "http://xvfeng.me"); // HTTP 301状态码
+    //让你传输整个文件等功能
+    response.sendFile("/path/to/anime.mp4");
+    ```
+
+    **视图**
+
+    ```js
+    // 启动Express
+    var express = require("express");
+    var app = express();
+
+    // 設置view目錄
+    app.set("views", __dirname + "/views");
+
+    // 設置模板引擎
+    app.set("view engine", "jade");
+    ```
+
+    **Express建立与Connect和Node之上，这意味着所有的Connect中间件均可以在Express中使用.**
+
+    ```js
+    var express = require("express");
+    var app = express();
+
+    app.use(express.logger());  // 继承自Connect
+
+    app.get("/", function(req, res) {
+        res.send("fraser");    
+    });
+
+    app.listen(1337);
+    ```
+
+    参考：
+
+    - [深入理解 Express.js](http://blog.jobbole.com/41325/)
+
 53. script的三种加载方式。
 
-    http://natumsol.github.io/2015/11/11/loading-script/
-    
-54. js中switch语句中，用来判断的表达式可以是任意类型，而不仅限与整型。js中函数的参数传递方式都是按值传递，没有按引用传递的参数。但js中有保存引用的对象，比如数组。
-变量作用域：值一个变量在程序中的那些地方可以被访问。js中的变量作用域被定义为函数作用域。这是值变量的值在定义该变量的函数内是可见的，并且定义在该函数内的嵌套函数中也可以访问该变量。在主程序中，如果在函数外定义一个变量，那么这个变量拥有全局作用域，这是值可以在包括函数体内的程序的任何部分访问该变量。递归并不是异步回调，还是同步执行。
-typeof和instanceof                                                                                  
+    答案：javascript脚本有三种加载方式，分别为<script>，<script defer = "defer">，<script async = "async">。
+
+    ![三种脚本加载的异同](../images/三种加载的异同.png)
+    * <script>: 脚本的获取和执行是同步的。此过程中页面被阻塞，停止解析。
+    * <script defer = "defer">：脚本的获取是异步的，执行是同步的。脚本加载不阻塞页面的解析，脚本在获取完后并不立即执行，而是等到DOMready之后才开始执行。
+    * <script async = "async">: 脚本的获取是异步的，执行是同步的。但是和<script defer = "defer">的不同点在于脚本获取后会立刻执行，这就会造成脚本的执行顺序和页面上脚本的排放顺序不一致，可能造成脚本依赖的问题。
+
+    参考：
+
+    - [图解script的三种加载方式](http://natumsol.github.io/2015/11/11/loading-script/)
+
+54. typeof和instanceof区别
+
+    答案： 类型判断函数typeof和判断构造函数原型instanceof.
+
+    typeof 是一个操作符,typeof方法返回一个字符串，来表示数据的类型。
+    ```js
+    typeof NaN === 'number'; // 尽管NaN是"Not-A-Number"的缩写,意思是"不是一个数字"
+    typeof (typeof 1) === 'string'; // typeof返回的肯定是一个字符串
+    typeof blabla === 'undefined'; // 一个未定义的变量,或者一个定义了却未赋初值的变量
+    typeof Math.sin === 'function';
+    ```
+
+    ![typeof](../images/typeof.png)
+
+    就是typeof来判断数据类型其实并不准确。比如数组、正则、日期、对象的typeof返回值都是object，所以在typeof判断类型的基础上，我们还需要利用`Object.prototype.toString`方法来进一步判断数据类型。利用toString方法可以正确区分出Array、Error、RegExp、Date等类型。在Safari和Chrome中使用typeof的时候会错误的返回"function",其他的浏览器返回的是object.
+
+    ![toString](../images/toString.png)
+
+     instanceof运算符可以用来判断某个构造函数的prototype属性是否存在于另外一个要检测对象的原型链上。
+     ```js
+     // 定义构造函数
+      function C(){}
+      function D(){}
+
+      var o = new C();
+
+      // true，因为 Object.getPrototypeOf(o) === C.prototype
+      o instanceof C;
+
+      // false，因为 D.prototype不在o的原型链上
+      o instanceof D;
+
+      o instanceof Object; // true,因为Object.prototype.isPrototypeOf(o)返回true
+      C.prototype instanceof Object // true,同上
+
+      C.prototype = {};
+      var o2 = new C();
+
+      o2 instanceof C; // true
+
+      o instanceof C; // false,C.prototype指向了一个空对象,这个空对象不在o的原型链上.
+
+      D.prototype = new C(); // 继承
+      var o3 = new D();
+      o3 instanceof D; // true
+      o3 instanceof C; // true
+     ```
