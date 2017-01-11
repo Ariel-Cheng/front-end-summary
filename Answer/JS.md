@@ -106,6 +106,7 @@
    1. **动态创建脚本** createElement(‘script’)和appendChild(script) 动态创建脚本，添加到head元素中。
    2. **分析依赖建立** 每个模块可能会依赖不同的模块，我们需要理清楚这些模块之间的依赖关系，然后分别将它们加载进来。为了分析依赖关系，我们使用toString的方法，将模块转化为一个string，然后去其中寻找依赖。`fn.toString().match(/.require((“|’)[^)]*(“|’))/g)` 将模块转换为字符串，然后通过正则表达式，匹配每个模块中的的依赖文件。
    3. 建立脚本加载队列、递归加载。
+    ![seajs](../images/seajs.png)
 
    参考:
   - [模块化开发之sea.js实现原理总结](http://www.lxway.com/85146452.htm)  
@@ -123,12 +124,12 @@
 
      在`Session`没有出现以前，基本所有网站都用`Cookie`。`Cookie` 是访问过的网站创建的文件，用于存储浏览信息，例如个人资料信息。这些信息存放在客户端的计算机中，用于客户端计算机与服务器之间传递信息。
      对于`Cookie`的实现，每一次http请求都会带给服务器当前域下的`Cookie`值，服务器通过解析不同的`Cookie`值，或加密后的`Cookie`值，来辨识当前用户信息，这些`Cookie`数据都是存储到客户端，也就是浏览器的键值对，可以删除、更改、设置过期等等，也有一些最大的容量(4kb,20条等)这些限制。浏览器会将这些信息存放在一个统一的位置，对于Windows操作系统而言，我们可以从： [系统盘]:\Documents and Settings\[用户名]\`Cookie目录中找到存储的`Cookie`。有两个http头部是专门负责设置以及发送`Cookie`的,它们分别是Set-`Cookie`以及`Cookie`。当服务器返回给客户端一个http响应信息时，其中如果包含Set-`Cookie`这个头部时，意思就是指示客户端建立一个`Cookie`，并且在后续的http请求中自动发送这个`Cookie`到服务器端，直到这个`Cookie`过期。
-     ![Cookie](/images/cookie.png)
+     ![Cookie](../images/cookie.png)
 
    2. **Session**
 
     当程序要为某个客户端的请求创建一个`Session`的时候，服务器首先检查这个客户端的请求里面是否包含了一个`Session`的标识，一般我们称之为`Session`Id。如果已经包含了一个`Session`Id，就说明已经为当前这个客户端建立过`Session`，那个服务器就会根据这个`Session`Id，把这个`Session`找出来就可以了。如果客户端请求里没有这个`Session`Id，那就要为这个客户端创建一个`Session`，并且生成一个跟这个`Session`关联的一个`Session`Id，然后这个`Session`Id的值，应该是一个不会重复，而且不容易被找到规律的字符串，这样以防止被伪造，那么这个`Session`Id也会在当次的这个响应中返回给客户端保存起来。`Session`内容只会保存在服务器中，发到客户端的只有`Session` id；当客户端再次发送请求的时候，会将这个`Session` id带上，服务器接受到请求之后就会依据`Session` id找到相应的`Session`，从而再次使用之。正是这样一个过程，用户的状态也就得以保持了。
-   ![Session](/images/Session.png)
+   ![Session](../images/session.png)
 
     保存这个`Session`Id的方式可以采用`Cookie`，这样呢，在交互的过程中，浏览器可以自动的按照规则，把标识发送给服务器，一般来说，`Cookie`的名字都是类似于`Session`Id，比如依赖于connect的一个express，它的默认的`Cookie`值就是connect.`Session`Id,一般情况系下，`Session`都是存储到内存里，到我们的开发情况下，当服务器进程被停止了，或者重启了，内存里的`Session`也会被清空，如果设置了`Session`持久化的特性，比如服务器吧`Session`保存包硬盘上，那么当服务器进程重启后，这些信息就能再次被使用。
 
@@ -138,7 +139,7 @@
     * 基于redis，把数据存入到redis数据库中，这样不同进程都能获取到`Session`数据，`Cookie`解析后获取到的`Session`Id，通过`Session`Id访问内存里面，再来获取相应的数据。
     * 基于mongoDB 同上。
 
-    ![持久化](/images/持久化.png)
+    ![持久化](../images/持久化.png)
 
     在默认情况下，HTTPS连接的cookie会自动加上secure这个参数。
 
@@ -414,7 +415,7 @@
    3、实例中的指针仅只想原型，而不指向构造函数。如果重写整个原型对象，就会切断现有实例、构造函数与新原型对象之间的联系。所以不能使用对象字面量来重写原型。
    4、每创建一个函数，就会同时创建它的prototype对象，这个对象也会自动获取它的construct属性，使用字面量，本质上重写了默认的protype对象，所以construct就会断掉，指向object。
    整个过程如图所示：
-   ！[原型链](/images/原型链.png)
+   ！[原型链](../images/原型链.png)
 
    **继承**：实现的本质是重写原型对象，而不使用默认提供的原型对象，代之以一个新类型的实例。利用原型链，继承别的对象的方法。类式继承和原型式继承
    ```js
@@ -1101,7 +1102,8 @@
     **生成器的原理**
 
     事实上result就是一个生成器，所以调用生成器函数必定会返回一个生成器，同时不会执行内部的任何代码。生成器函数内的代码在调用生成器的next方法时才执行。
-    ![generator](/images/generator.png)
+
+    ![generator](../images/generator.png)
 
     输出的结果和使用普通函数的结果完全一样，只要`done`的值不是`true`就可以一直调用`next`。很直观的可以看到调用`next`返回一个`object`，包含两个属性`done`和`value`，符合迭代器协议。同时注意`log`，调用第一次`next`打印了`function start`和`yield start`，后续调用打印了`yield end`和`yield start`，最后一次调用`next`打印了`yield end`和`function end`，最后一次`next`是指`done`为`false`。
 
@@ -1287,15 +1289,24 @@
     3、DOM3事件
 
     DOM浏览器中可能发生的事件有很多种，不同事件类型具有不同的信息，DOM3级事件规定了一下几种事件：
-        1）UI事件，当用户与页面上的元素交互时触发；
-        2）焦点事件，当元素获得或者失去焦点时触发；
-        3）鼠标事件，当用户通过鼠标在页面上执行操作时触发；
-        4）滚轮事件，当使用鼠标滚轮（或类似设备）时触发；
-        5）文本事件，当在文档中，输入文本时触发；
-        6）键盘事件，当用户通过键盘在页面上执行操作时触发；
-        7）合成事件，当为IME（Input Method Editor，输入法编辑器）输入字符时触发；
-        8）变动事件，当底层Dom结构发生变化时触发；
-        DOM3级事件模块在DOM2级事件的基础上重新定义了这些事件，也添加了一些新事件。包括IE9在内的主流浏览器都支持DOM2级事件，IE9也支持DOM3级事件。
+
+    1）UI事件，当用户与页面上的元素交互时触发；
+
+    2）焦点事件，当元素获得或者失去焦点时触发；
+
+    3）鼠标事件，当用户通过鼠标在页面上执行操作时触发；
+
+    4）滚轮事件，当使用鼠标滚轮（或类似设备）时触发；
+
+    5）文本事件，当在文档中，输入文本时触发；
+
+    6）键盘事件，当用户通过键盘在页面上执行操作时触发；
+
+    7）合成事件，当为IME（Input Method Editor，输入法编辑器）输入字符时触发；
+
+    8）变动事件，当底层Dom结构发生变化时触发；
+
+    DOM3级事件模块在DOM2级事件的基础上重新定义了这些事件，也添加了一些新事件。包括IE9在内的主流浏览器都支持DOM2级事件，IE9也支持DOM3级事件。
     **DOM中的事件模拟（自定义事件）：**
 
     DOM3级还定义了自定义事件，自定义事件不是由DOM原生触发的，它的目的是让开发人员创建自己的事件。要创建的自定义事件可以由createEvent("CustomEvent");返回的对象有一个initCustomEvent（）方法接收如下四个参数。
@@ -1691,7 +1702,6 @@
 
     **观察者模式**，**发布订阅者模式**，单例模式，装饰者模式，工厂模式
 
-
     单例模式：
     >单例就是保证一个类只有一个实例，实现的方法一般是先判断实例存在与否，如果存在则直接返回，如果不存在就创建了再返回，这就确保了一个类只有一个实例对象。在JavaScript中，单例作为一个命名空间提供者，从全局命名空间里提供一个唯一的访问点来访问该对象。(比如说一座房子只有一扇门，有一扇门就不用再开门了，如果没有门则需要创建一个门。每个门都只属于一个户主（命名空间），门是户与户之间的唯一接口，你要来我家，只能从这个门进来。)
 
@@ -1720,6 +1730,7 @@
     工厂（Factory）模式:
     >工厂模式定义了一个用于创建对象的接口，这个接口决定了实例化哪一个类。该模式将其成员对象的实例化推迟到子类中进行。而子类可以重写接口方法以便创建的时候指定自己的对象类型（抽象工厂）。（简单工厂：能找到具体细节）；抽象工厂只留口，不做事，留给外界覆盖；
     这个模式十分有用，尤其是创建对象的流程赋值的时候，比如依赖于很多设置文件等。并且，会经常在程序里看到工厂方法，用于让子类定义需要创建的对象类型。
+
     **简单工厂模式**：使用一个类（通常为单体）来生成实例。
     **复杂工厂模式**：使用子类来决定一个成员变量应该是哪个具体的类的实例。
 
@@ -2058,10 +2069,9 @@
     }
     ```
 
-
 44. 原生对象(native object)和宿主对象(host object)有什么区别？
 
-    答案：![JS对象系统](./images/JS对象系统.png)
+    答案：![JS对象系统](../images/JS对象系统.png)
 
     1.native object
     >ECMA-262 把原生对象（native object）定义为“独立于宿主环境的 ECMAScript 实现提供的对象”。
@@ -2084,7 +2094,7 @@
 
     localStorage 会触发一个事件。不论某个标签页在何时添加、修改或删除了 localStorage，都会对其余的所有标签触发事件，所有其它的标签页都能通过 window 对象监听到这个事件。这就意味着我们只要为 localStorage 赋值，通过监听事件，控制它的值，就能够跨浏览器标签通信了。使用`localStorage.setItem(key,value);`添加内容，使用storage事件监听添加、修改、删除的动作。
     注意quirks：Safari 在无痕模式下设置localstorge值时会抛出 QuotaExceededError 的异常。
-    ![localStorage_event对象属性](./images/localStorage_event对象属性.png)
+    ![localStorage_event对象属性](../images/localStorage_event对象属性.png)
     ```js
     window.addEventListener('storage', function (event) {
       console.log(event.key, event.newValue);
@@ -2143,7 +2153,7 @@
 46. `attribute`和 `property`的区别是什么(核心)？
 
     答案：property（属性）是DOM对象自身就拥有的属性，而attribute（特性）是我们通过设置HTML标签而给之赋予的特性，attribute和property的同名属性/特性之间会产生一些特殊的数据联系，而这些联系会针对不同的属性/特性有不同的区别。
-    ![property和attribute](property和attribute.png)
+    ![property和attribute](../images/property和attribute.png)
     ```js
     //有“id”和“value”两个基本的属性，但没有“sth”这个自定义的属性
     <input id="in_1" value="1" sth="whatever">
@@ -2188,6 +2198,7 @@
     5. 加载图片等外部文件。
     6. 页面加载完毕。//load
     在第4步，会触发DOMContentLoaded事件。在第6步，触发load事件。
+
     ```js
     //用原生js可以这么写
     // 不兼容老的浏览器，兼容写法见[jQuery中ready与load事件](http://www.imooc.com/code/3253)，或用jQuery
