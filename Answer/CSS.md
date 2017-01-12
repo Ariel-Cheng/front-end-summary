@@ -112,7 +112,7 @@
 
 2. 盒子模型。
 
-  答案：浏览器的盒子模型指的是它的盒子宽度需要包括内容区宽度、内外边距和边框大小，高度类似。一般设置宽度默认是对应内容区宽度。CSS设置的宽度仅仅是内容区的宽度，而非盒子的宽度,盒子的宽度=padding + border + width，实际呈现的盒子的宽度可能会大于我们设置的宽度（除非没有左右边框和左右补白）。
+  答案：针对块级元素说的,把块级元素想像成一个装东西的盒子，而margin,padding,border,width这些css属性构成了盒模式。浏览器的盒子模型指的是它的盒子宽度需要包括内容区宽度、内外边距和边框大小，高度类似。一般设置宽度默认是对应内容区宽度。CSS设置的宽度仅仅是内容区的宽度，而非盒子的宽度,盒子的宽度=padding + border + width，实际呈现的盒子的宽度可能会大于我们设置的宽度（除非没有左右边框和左右补白）。
 
   兼容性方面：在IE7以前的版本中设置宽度是包括：内边距+边框+内容区的。IE7之后跟其它浏览器一样，都是只对应内容区的宽度。可以通过修改box-sizing:border-box来修改。让设置宽度等于内容区和边框和内边距之和。
   ![盒子模型](../images/盒子模型.png)
@@ -218,6 +218,19 @@
     transform:translate(100px,20px):/*translateX(X)仅水平方向移动（X轴移动）;translateY/*/
     transform:scale(2,1.5):/*scaleX(x)表示元素只在X轴(水平方向)缩放元素*/
     transform:skew(30deg,10deg):/*skewX(y)是使元素以其中心为基点，并在水平方向（X轴）进行扭曲变行， */
+    ```
+    ```css
+    /*<div id="transDiv" class="transStart"> transition </div>  id 为“transDiv”的 div，当它的初始“background-color”属性变化时（被 JavaScript 修改），会呈现出一种变化效果，持续时间为 0.3 秒，效果为均匀变换（linear）。如：该 div 的 class 属性由“transStart”改为“transEnd”，其背景会由白（white）渐变到红（red）*/  
+    .transStart {
+       background-color: white;
+       -webkit-transition: background-color 0.3s linear;
+       -moz-transition: background-color 0.3s linear;
+       -o-transition: background-color 0.3s linear;
+       transition: background-color 0.3s linear;
+    }
+    .transEnd {
+       background-color: red;
+    }
     ```
     none:表示不进么变换；<transform-function>表示一个或多个变换函数，以空格分开；换句话说就是我们同时对一个元素进行transform的多种属性操作，它可用于内联(inline)元素和块级(block)元素。它允许我们旋转、缩放和移动元素，transform用使用多个属性叠加效果时用空格隔开。
   * animation(动画)：动画定义了动作的每一帧（@keyframes）有什么效果，包括animation-name，animation-duration、animation-timing-function、animation-delay、animation-iteration-count、animation-direction。
@@ -604,8 +617,8 @@
 
   转换到最后你发现不够三个字节了怎么办呢？愿望终于实现了，我们可以用两 个Base64来表示一个字符或用三个Base64表示两个字符，像下图的A对应的第二个Base64的二进制位只有两个，把后边的四个补0就是了。所以 A对应的Base64字符就是QQ。上边已经说过了，原则是Base64字符的最小单位是四个字符一组，那这才两个字 符，后边补两个"="吧。其实不用"="也不耽误解码，之所以用"="，可能是考虑到多段编码后的Base64字符串拼起来也不会引起混淆。由此可见 Base64字符串只可能最后出现一个或两个"="，中间是不可能出现"="的。下图中字符"BC"的编码过程也是一样的。
 
-  ![Base64(2)](../images/Base64(2).png)
-  ![Base64(3)](../images/Base64(3).png)
+  ![Base64(2)](../images/Base64_2.png)
+  ![Base64(3)](../images/Base64_3.png)
 
   - base64的编码都是按字符串长度，以每3个8bit的字符为一组，
   - 然后针对每组，首先获取每个字符的ASCII编码，
@@ -662,12 +675,128 @@
 
 16. `CSS`字体单位`rem`、 `em` 和`px` 之间的区别和联系？
 
-  答案：
+  答案：概念：
+  1. px (pixel，像素):相对长度单位。像素px是相对于显示器屏幕分辨率而言的。(如果px要换算成物理长度，需要指定精度DPI(Dots Per Inch，每英寸像素数)。Windows系统默认是96dpi，Apple系统默认是72dpi。)浏览器有一个“16px”大小的默认字体。此时我们Web页面中的<body>就继承了这个“font-size:16px;”
+
+      px特点：
+      * IE无法调整那些使用px作为单位的字体大小；
+      * 国外的大部分网站能够调整的原因在于其使用了em或rem作为字体单位；
+      * Firefox能够调整px和em，rem，但是96%以上的中国网民使用IE浏览器(或内核)。
+
+  2. em(相对长度单位，相对于父元素的字体尺寸)：指的是字符宽度的倍数。任意浏览器的默认字体高都是16px。所以未经调整的浏览器都符合: 1em=16px。
+
+      em特点：
+      * 为了简化font -size的换算，需要在css中的body选择器中声明Font-size=62.5%，这就使em值变为16px*62.5%=10px, 这样12px=1.2em。 `html { font-size: 62.5%; }`;
+      * em的值并不是固定的，em会继承父级元素的字体大小。
+      * 支持IE6下的字体缩放，在页面中按ctrl+滚轮，字体以px为单位的网站没有反应。px是绝对单位，不支持IE的缩放，em是相对单位。不仅仅是字体，将行距(line-height)，和纵向高度的单位都用em的话，可以保证缩放时候的整体性。
+      * 避免字体大小的重复声明，你可能会在content这个div里把字体大小设为1.2em, 也就是12px。然后你又把选择器p的字体大小也设为1.2em，但如果p属于content的子级的话，p的字体大小就不是12px，而是1.2em= 1.2 * 12px=14.4px。
+      * IE处理汉字时，对于浮点的取值精确度有限，以上方法得到的12px(1.2em)大小的汉字在IE中并不等于直接用12px定义的字体大小，而 是稍大一点。英文不存在此现象。解决方法就是把style.css中的62.5%换 为63%。
+  3. pt (point，磅)：是一个物理长度单位，指的是72分之一英寸。pt=1/72(英寸), px=1/dpi(英寸)
+  4. rem（root em，根em）：是CSS3新增的一个相对单位，使用rem为元素设定字体大小时，仍然是相对大小，但相对的只是HTML根元素。这个单位可谓集相对大小和绝对大小的优点于一身，通过它既可以做到只修改根元素就成比例地调整所有字体大小，又可以避免字体大小逐层复合的连锁反应。目前，除了IE8及更早版本外，所有浏览器均已支持rem。对于不支持它的浏览器，应对方法也很简单，就是多写一个绝对单位的声明。这些浏览器会忽略用rem设定的字体大小。`p {font-size:14px; font-size:.875rem;}`
+
+  参考：
+
+    - [css中的px、em、rem 详解](http://www.mamicode.com/info-detail-655497.html)
 
 17. `CSS3`新特性有哪些？
 
-  答案：
+  答案：CSS 即层叠样式表（Cascading Stylesheet）。Web 开发中采用 CSS 技术，可以有效地控制页面的布局、字体、颜色、背景和其它效果。只需要一些简单的修改，就可以改变网页的外观和格式。CSS3 是 CSS 的升级版本，这套新标准提供了更加丰富且实用的规范，如：盒子模型、列表模块、超链接方式、语言模块、背景和边框、文字特效、多栏布局等等。
+  1. CSS3 提供了更多更加方便快捷的选择器
+
+      * :nth-child(n) 选择器匹配属于其父元素的第 N 个子元素，不论元素的类型。(Odd 和 even 是可用于匹配下标是奇数或偶数的子元素的关键词（第一个子元素的下标是 1）);
+      * :nth-of-type() 选择器，该选择器选取父元素的第 N 个指定类型的子元素(n 可以是数字、关键词或公式);
+      * :nth-last-of-type(n) 选择器匹配属于父元素的特定类型的第 N 个子元素的每个元素，从最后一个子元素开始计数;
+      * :not(selector) 选择器匹配非指定元素/选择器的每个元素。
+      * :first-child 选择器用于选取属于其父元素的首个子元素的指定选择器;
+      * :last-child 选择器匹配属于其父元素的最后一个子元素的每个元素(p:last-child 等同于 p:nth-last-child(1));
+      * p:nth-last-child(n):规定属于其父元素的第n个子元素的每个 p 元素，从最后一个子元素开始计数;
+      * :first-of-type 选择器匹配属于其父元素的特定类型的首个子元素的每个元素。
+      * :only-child 选择器匹配属于其父元素的唯一子元素的每个元素。
+      * :empty 选择器匹配没有子元素（包括文本节点）的每个元素。
+      * :checked 选择器匹配每个已被选中的 input 元素（只用于单选按钮和复选框）。
+      * :enabled 选择器匹配每个已启用的元素（大多用在表单元素上）。
+      * :disabled 选择器匹配每个被禁用的元素（大多用在表单元素上）。
+      * ::selection 选择器匹配被用户选取的选取是部分。只能向 ::selection 选择器应用少量 CSS 属性：color、background、cursor 以及 outline;
+      * :not(s)匹配不含有s选择符的元素E。
+  2. `@Font-face` 特性:Font-face 可以用来加载字体样式，而且它还能够加载服务器端的字体文件，让客户端显示客户端所没有安装的字体。
+
+      ```css
+      /*字体基本写法
+      <p><font style="font-family: arial">arial courier verdana</font></p>*/
+      @font-face {
+      font-family: BorderWeb;
+      src:url(BORDERW0.eot);
+      }
+      @font-face {
+      font-family: Runic;
+      src:url(RUNICMT0.eot);
+      }
+      /*声明的两个服务端字体，其字体源指向“BORDERW0.eot”和“RUNICMT0.eot”文件，并分别冠以“BorderWeb”和“Runic”的字体名称。声明之后，我们就可以在页面中使用了*/
+      .border { FONT-SIZE: 35px; COLOR: black; FONT-FAMILY: "BorderWeb" }
+      .event { FONT-SIZE: 110px; COLOR: black; FONT-FAMILY: "Runic" }
+      ```
+  3. Word-wrap & Text-overflow 样式:“word-wrap: break-word”，设置或检索当当前行超过指定容器的边界时是否断开转行，文字此时已被打散。 text-overflow 则设置或检索当当前行超过指定容器的边界时如何显示。其实它与 word-wrap 是协同工作的。均使用“overflow: hidden”，对于“text-overflow”属性，有“clip”和“ellipsis”两种可供选择
+
+      ```css
+      .clip{text-overflow:clip; overflow:hidden; white-space:nowrap;
+      width:200px;background:#ccc;}
+      .ellipsis{text-overflow:ellipsis; overflow:hidden; white-space:nowrap;
+        width:200px; background:#ccc;}
+      /*
+      <div class="clip">
+       不显示省略标记，而是简单的裁切条
+      </div>
+      <div class="ellipsis">
+       当对象内文本溢出时显示省略标记即三个点省略号，更人性化"..."
+      </div>*/
+      ```
+  4. 文字渲染（Text-decoration）
+
+      ```css
+        div {
+      -webkit-text-fill-color: black; /*Text-fill-color: 文字内部填充颜色*/
+      -webkit-text-stroke-color: red; /*Text-stroke-color: 文字边界填充颜色*/
+      -webkit-text-stroke-width: 2.75px; /*Text-stroke-width: 文字边界宽度*/
+      }
+      ```
+  5. CSS3 的多列布局（multi-column layout）
+
+      ```css
+      .multi_column_style{
+      -webkit-column-count: 3; /*Column-count：表示布局几列。*/
+      -webkit-column-rule: 1px solid #bbb; /*Column-rule：表示列与列之间的间隔条的样式*/
+      -webkit-column-gap: 2em; /*Column-gap：表示列于列之间的间隔*/
+      }
+      ```
+  6. 边框和颜色（color, border）:CSS3 已经提供透明度的支持,`color: rgba(255, 0, 0, 0.75); /*“rgba”属性中的“a”代表透明度，也就是这里的“0.75”*/`,提供了圆角的支
+  7. CSS3 的渐变效果（Gradient）:线性渐变,径向渐变
+
+      ![Gradient](../images/Gradient.png)
+
+  8. CSS3 的阴影（Shadow）和反射（Reflect）效果:阴影效果既可用于普通元素，也可用于文字
+
+      ![box-shadow](../images/box-shadow.png)
+      ```css
+      .class1{
+       text-shadow:5px 2px 6px rgba(64, 64, 64, 0.5);
+       } /*表示 X 轴方向阴影向右 5px,Y 轴方向阴影向下 2px, 而阴影模糊半径 6px，颜色为 rgba(64, 64, 64, 0.5)。其中偏移量可以为负值，负值则反方向。*/
+       .class2{
+       box-shadow:3px 3px 3px rgba(0, 64, 128, 0.3);
+       }
+       .classReflect{
+      -webkit-box-reflect: below 10px
+      -webkit-gradient(linear, left top, left bottom, from(transparent),
+           to(rgba(255, 255, 255, 0.51)));
+      }/*反射，他看起来像水中的倒影,表示反射在元素下方 10px 的地方，再配上渐变效果*/
+      ```
+  9. CSS3 的背景效果：确定背景的位置从什么地方开始显示(border、padding、content)
+  10. CSS3 的盒子模型:水平排列，弹性布局
+  11. CSS3 的 Transitions, Transforms 和 Animation、Transitions
+
+  参考：
+
+    - [深入了解 CSS3 新特性](http://www.ibm.com/developerworks/cn/web/1202_zhouxiang_css3/index.html)
 
 18. 列出你所知道可以改变页面布局的属性。
 
-  答案：
+  答案：position、display、float、width、height、margin、padding、top、left、right、bottom，等。
