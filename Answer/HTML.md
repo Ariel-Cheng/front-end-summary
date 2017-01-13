@@ -2,12 +2,12 @@
 
 1.  `<script>`，`<script defer = "defer">`，`<script async = "async">`它们之间加载脚本的区别是什么？
 
-  答案：javascript脚本有三种加载方式，分别为<script>，<script defer = "defer">，<script async = "async">。
+  答案：javascript脚本有三种加载方式，分别为`<script>`，`<script defer = "defer">`，`<script async = "async">`。
 
   ![三种脚本加载的异同](../images/三种加载的异同.png)
-  * <script>: 脚本的获取和执行是同步的。此过程中页面被阻塞，停止解析。
-  * <script defer = "defer">：脚本的获取是异步的，执行是同步的。脚本加载不阻塞页面的解析，脚本在获取完后并不立即执行，而是等到DOMready之后才开始执行。
-  * <script async = "async">: 脚本的获取是异步的，执行是同步的。但是和<script defer = "defer">的不同点在于脚本获取后会立刻执行，这就会造成脚本的执行顺序和页面上脚本的排放顺序不一致，可能造成脚本依赖的问题。
+  * `<script>`: 脚本的获取和执行是同步的。此过程中页面被阻塞，停止解析。
+  * `<script defer = "defer">`：脚本的获取是异步的，执行是同步的。脚本加载不阻塞页面的解析，脚本在获取完后并不立即执行，而是等到DOMready之后才开始执行。
+  * `<script async = "async">`: 脚本的获取是异步的，执行是同步的。但是和`<script defer = "defer">`的不同点在于脚本获取后会立刻执行，这就会造成脚本的执行顺序和页面上脚本的排放顺序不一致，可能造成脚本依赖的问题。
 
   参考：
 
@@ -74,6 +74,7 @@
   4. 方便其他设备解析（如屏幕阅读器、盲人阅读器、移动设备）以意义的方式来渲染网页；
   5. 便于团队开发和维护，语义化更具可读性，是下一步吧网页的重要动向，遵循W3C标准的团队都遵循这个标准，可以减少差异化。
 
+  HTML语义化标签
   1. header 元素代表“网页”或“section”的头部部分(页眉)。通常包含h1-h6元素或hgroup，作为整个页面或者一个内容块的标题。也可以包裹一节的目录部分，一个搜索框，一个nav，或者任何相关logo。整个页面没有限制header元素的个数，可以拥有多个，可以为每个内容块增加一个header元素。
   2. footer元素代表“网页”或“section”的页脚，通常含有该节的一些基本信息，譬如：作者，相关文档链接，版权资料。如果footer元素包含了整个节，那么它们就代表附录，索引，提拔，许可协议，标签，类别等一些其他类似信息。没有个数限制，除了包裹的内容不一样，其他跟header类似.
   3. hgroup元素代表“网页”或“section”的标题，当元素有多个层级时，该元素可以将h1到h6元素放在其内，譬如文章的主标题和副标题的组合.
@@ -125,7 +126,7 @@
   答案：
   * HTML5新增的特性与API 语义化标签：提升Web的可用性，利于SEO和屏幕阅读器；一般有header、footer、nav、article、section等。
   * 新的音视频：HTML中包含audio和video标签，可以播放视频和音评，不过格式有限制。
-  * 新的Doctype、<figure>新的图形元素、<small>重新定义：小字、<script><link>无需指定type、<ul contenteditable="true">内容可编辑、<input id="email" name="email" type="email" />内置表单验证 email、占位符(Placeholders)、本地存储(Local Storage)、<video preload controls>显示控制条、mark元素高亮、data自定义属性、
+  * 新的Doctype、`<figure>`新的图形元素、`<small>`重新定义：小字、`<script>``<link>`无需指定type、`<ul contenteditable="true">`内容可编辑、`<input id="email" name="email" type="email" />`内置表单验证 email、占位符(Placeholders)、本地存储(Local Storage)、`<video preload controls>`显示控制条、mark元素高亮、data自定义属性、
   * Form API：增强了form表单，比如增加了input的type类型，number/tel/range等;
 
   *不属于html5新特新*
@@ -184,7 +185,8 @@
 
   优化：
 
-　1. display:none;的元素不加入DOM树，因此对于需要一次性改动大量DOM元素时，可以先将要增加，删除，修改元素的父级display设为none，在DOM树外执行增加，删除，修改操作后再一次性加回DOM树（display:none;），此过程只进行2次重排；
-　2. 减少改变样式的次数，即将对同一元素的样式设置尽量合并，减少操作；
-　3. 将要进行多次重排的元素属性设为absolute或fixed，这样该元素便脱离了普通流，所以改变定位时不影响DOM结构；
-　4. 缓存经常使用的与重排相关的属性值；例如：`for(i = 0; i<aLi.length; i++){}`可改写为：`l = aLi.length；for(i = l-1 ; i>=0 ; i--){} //这时就不用每进行一次循环就reflow一次去计算aLi.length了`
+  1. `display:none;`的元素不加入DOM树，因此对于需要一次性改动大量DOM元素时，可以先将要增加，删除，修改元素的父级display设为none，在DOM树外执行增加，删除，修改操作后再一次性加回DOM树（display:none;），此过程只进行2次重排；
+  2. 减少改变样式的次数，即将对同一元素的样式设置尽量合并，减少操作；
+  3. 将要进行多次重排的元素属性设为absolute或fixed，这样该元素便脱离了普通流，所以改变定位时不影响DOM结构；
+  4. 缓存经常使用的与重排相关的属性值；例如：`for(i = 0; i<aLi.length; i++){}`可改写为：`l = aLi.length；for(i = l-1 ; i>=0 ; i--){} //这时就不用每进行一次循环就reflow一次去计算aLi.length了`
+  5. 尽量减少table布局。过去为了对齐等原因，大部分的网页都用table布局，但是性能都非常差。table布局的重排和重绘，它可能需要多次计算才能确定好其在渲染树中节点的属性，通常要花3倍于同等元素的时间。而且随便一个cell的高度宽度的修改都会影响到整个表格重排，因此性能非常差。所以，尽量避免使用table布局。
